@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <title>Painel e-SUS (Sidebar)</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="/css/style.css">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body>
+
+    <!-- ============================================= -->
+    <!-- 1. SIDEBAR (Menu de Navegação) -->
+    <!-- ============================================= -->
+    <nav id="sidebar">
+        <div class="sidebar-header">
+            <!-- Logo e Título do SUS -->
+            <div class="header-sus-bar">
+                <div class="sus-logo">
+                    <div class="sus-logo-vertical"></div>
+                    <div class="sus-logo-horizontal"></div>
+                </div>
+                <span class="sus-logo-text">SUS</span>
+            </div>
+            <h3>Painel e-SUS</h3>
+        </div>
+
+        <!-- Lista de Menus "Sanfona" -->
+        <ul class="sidebar-menu">
+            
+            <!-- Menu 1: Indicadores APS -->
+            <li class="menu-item has-submenu">
+                <a href="#" class="menu-link">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Indicadores APS</span>
+                    <i class="fas fa-chevron-right arrow"></i>
+                </a>
+                <ul class="submenu">
+                    <li class="submenu-item has-submenu">
+                        <a href="#" class="submenu-link">
+                            <span>eSF / eAP</span>
+                            <i class="fas fa-chevron-right arrow"></i>
+                        </a>
+                        <!-- Sub-submenu (Nível 3) -->
+                        <ul class="submenu">
+                            <li class="submenu-item">
+                                <a href="#" class="sidebar-link" 
+                                   data-api="indicadores/mais-acesso" 
+                                   data-tipo="mais-acesso" 
+                                   data-titulo="Mais Acesso"
+                                   data-descricao="Cidadãos com registros de atendimentos.">
+                                    <span>C1 - Mais Acesso</span>
+                                </a>
+                            </li>
+                            <li class="submenu-item">
+                                <!-- ============================================ -->
+                                <!-- ONDE O RANKING VAI FUNCIONAR -->
+                                <!-- ============================================ -->
+                                <a href="#" class="sidebar-link" 
+                                   data-api="indicadores/infantil" 
+                                   data-tipo="infantil" 
+                                   data-titulo="Cuidado no Desenvolvimento Infantil"
+                                   data-descricao="Acompanhamento e pontuação por criança (C2).">
+                                    <span>C2 - Desenvolvimento Infantil</span>
+                                </a>
+                                <!-- ============================================ -->
+                            </li>
+                            <li class="submenu-item">
+                                <a href="#" class="sidebar-link" 
+                                   data-api="indicadores/gestantes" 
+                                   data-tipo="gestantes" 
+                                   data-titulo="Gestantes"
+                                   data-descricao="Lista de gestantes cadastradas.">
+                                    <span>C3 - Gestantes Puérperas</span>
+                                </a>
+                            </li>
+                            <li class="submenu-item">
+                                <a href="#" class="sidebar-link" 
+                                   data-api="indicadores/diabetes" 
+                                   data-tipo="diabetes" 
+                                   data-titulo="Pessoa Diabética"
+                                   data-descricao="Lista de pessoas com diabetes.">
+                                    <span>C4 - Pessoa Diabética</span>
+                                </a>
+                            </li>
+                            <li class="submenu-item">
+                                <a href="#" class="sidebar-link" 
+                                   data-api="indicadores/hipertensao" 
+                                   data-tipo="hipertensao" 
+                                   data-titulo="Pessoa Hipertensa"
+                                   data-descricao="Lista de pessoas com hipertensão arterial.">
+                                    <span>C5 - Pessoa Hipertensa</span>
+                                </a>
+                            </li>
+                            <li class="submenu-item">
+                                <a href="#" class="sidebar-link" 
+                                   data-api="indicadores/idosos" 
+                                   data-tipo="idosos" 
+                                   data-titulo="Pessoas Idosas"
+                                   data-descricao="Lista de cidadãos com mais de 60 anos.">
+                                    <span>C6 - Pessoa Idosa</span>
+                                </a>
+                            </li>
+                            <li class="submenu-item">
+                                <a href="#" class="sidebar-link" 
+                                   data-api="indicadores/saude-mulher" 
+                                   data-tipo="saude-mulher" 
+                                   data-titulo="Saúde Mulher"
+                                   data-descricao="Lista de cidadãos com sexo 'FEMININO'.">
+                                    <span>C7 - Saúde Mulher</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="submenu-item">
+                        <a href="#" class="sidebar-link-placeholder"><span>eMulti</span></a>
+                    </li>
+    <li class="menu-item has-submenu">
+    <a href="#" class="menu-link">
+        <i class="fas fa-tooth"></i>
+        <span>eSB - Saúde Bucal</span>
+        <i class="fas fa-chevron-right arrow"></i>
+    </a>
+
+    <ul class="submenu">
+        
+        <li class="submenu-item">
+         <a href="#" 
+   class="sidebar-link" 
+   onclick="event.preventDefault(); window.carregarLayoutB1(); window.renderizarFiltrosB1();"
+   data-tipo="b1">
+   <span>B1 - 1ª Consulta</span>
+</a>
+        </li>
+
+        <li class="submenu-item">
+            <a href="#" class="sidebar-link" onclick="event.preventDefault(); alert('Módulo B2 em construção');">
+               <span style="color: #999;">B2 - Tratamento (Em breve)</span>
+            </a>
+        </li>
+
+        <li class="submenu-item">
+            <a href="#" class="sidebar-link" onclick="event.preventDefault(); alert('Módulo B3 em construção');">
+               <span style="color: #999;">B3 - Gestantes (Em breve)</span>
+            </a>
+        </li>
+
+    </ul>
+</li>
+                     <li class="submenu-item">
+                        <a href="#" class="sidebar-link-placeholder"><span>Resultado Municipal</span></a>
+                    </li>
+                </ul>
+            </li>
+
+            <!-- Menu 2: Gestão de Cadastros -->
+            <li class="menu-item has-submenu">
+                <a href="#" class="menu-link">
+                    <i class="fas fa-users"></i>
+                    <span>Gestão Cadastros</span>
+                    <i class="fas fa-chevron-right arrow"></i>
+                </a>
+                <ul class="submenu">
+                    <li class="submenu-item">
+                        <a href="#" class="sidebar-link"
+                           data-api="cadastros/cidadao" 
+                           data-tipo="cidadao" 
+                           data-titulo="Cidadão"
+                           data-descricao="Gerenciamento de cadastros de cidadãos ativos.">
+                            <span>Cidadão</span>
+                        </a>
+                    </li>
+                    <li class="submenu-item">
+                        <a href="#" class="sidebar-link"
+                           data-api="cadastros/busca-ativa" 
+                           data-tipo="busca-ativa" 
+                           data-titulo="Busca Ativa Cadastro"
+                           data-descricao="Relatório de cidadãos para busca ativa (regra pendente).">
+                            <span>Busca Ativa Cadastro</span>
+                        </a>
+                    </li>
+                    <li class="submenu-item">
+                        <a href="#" class="sidebar-link"
+                           data-api="cadastros/duplicados" 
+                           data-tipo="duplicados" 
+                           data-titulo="Cidadãos Duplicados"
+                           data-descricao="Cidadãos com nome e data de nascimento duplicados.">
+                            <span>Cidadãos Duplicados</span>
+                        </a>
+                    </li>
+                    <li class="submenu-item">
+                        <a href="#" class="sidebar-link"
+                           data-api="cadastros/sem-cpf" 
+                           data-tipo="sem-cpf" 
+                           data-titulo="Cadastros sem CPF"
+                           data-descricao="Cidadãos ativos, sem CPF, mas com CNS válido.">
+                            <span>Cadastros sem CPF</span>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <!-- Menu de Administração -->
+            <li class="menu-item has-submenu">
+                <a href="#" class="menu-link">
+                    <i class="fas fa-cogs"></i>
+                    <span>Administração</span>
+                    <i class="fas fa-chevron-right arrow"></i>
+                </a>
+                <ul class="submenu">
+                <li class="menu-item">
+                <a href="admin-users.html" class="nav-link text-white d-flex align-items-center py-3"> 
+                    <i class="fas fa-users-cog me-2"></i> 
+                    <span>Gestão de Usuários</span>
+                </a>
+            </li>
+                </ul>
+            </li>
+
+            <li class="menu-item mt-5" style="padding: 0 15px;"> 
+               <a href="#" onclick="logout()" class="btn btn-light w-100 d-flex align-items-center justify-content-center text-dark fw-bold py-2">
+  <i class="fas fa-sign-out-alt me-2"></i>
+  <span>Sair</span>
+</a>
+
+            </li>
+            </ul> </nav>
+
+        </ul>
+    </nav>
+
+    <!-- ============================================= -->
+    <!-- 2. CONTEÚDO PRINCIPAL (Tabelas, Filtros) -->
+    <!-- ============================================= -->
+    <main id="main-content">
+        
+        <!-- Cabeçalho do Conteúdo (Título e Botão Mobile) -->
+        <header id="content-header">
+            <button id="btn-toggle-sidebar">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div id="page-title-container">
+                <h2 id="page-title">Dashboard</h2>
+                <p id="page-description">Visão geral dos indicadores de saúde.</p>
+            </div>
+        </header>
+
+        <!-- Container ÚNICO para Filtros -->
+        <div id="filtros-container-global" class="filtros-container hidden">
+            <!-- Os filtros de "Mais Acesso" e "Infantil" serão injetados aqui pelo main.js -->
+        </div>
+        
+        <!-- Container ÚNICO para a Tabela de Dados -->
+        <div id="tabela-container-global" class="tabela-container">
+            <h2 class="dashboard-title">Monitoramento APS</h2>
+
+<div class="dashboard-grid">
+    <div class="kpi-card card-c1">
+        <div class="card-header"><span class="card-code">C1</span><i class="fas fa-calendar-check card-icon"></i></div>
+        <div class="card-title">Mais Acesso</div>
+        <div class="card-value" id="val-c1">--%</div>
+        <div class="card-meta">Consultas em dia</div>
+    </div>
+    <div class="kpi-card card-c2">
+        <div class="card-header"><span class="card-code">C2</span><i class="fas fa-baby card-icon"></i></div>
+        <div class="card-title">Desenv. Infantil</div>
+        <div class="card-value" id="val-c2">--</div>
+        <div class="card-meta">Crianças acompanhadas</div>
+    </div>
+    <div class="kpi-card card-c3">
+        <div class="card-header"><span class="card-code">C3</span><i class="fas fa-person-pregnant card-icon"></i></div>
+        <div class="card-title">Gestantes</div>
+        <div class="card-value" id="val-c3">--</div>
+        <div class="card-meta">Pré-natal ativo</div>
+    </div>
+    <div class="kpi-card card-c4">
+        <div class="card-header"><span class="card-code">C4</span><i class="fas fa-droplet card-icon"></i></div>
+        <div class="card-title">Diabetes</div>
+        <div class="card-value" id="val-c4">--%</div>
+        <div class="card-meta">Hemoglobina em dia</div>
+    </div>
+    <div class="kpi-card card-c5">
+        <div class="card-header"><span class="card-code">C5</span><i class="fas fa-heart-pulse card-icon"></i></div>
+        <div class="card-title">Hipertensão</div>
+        <div class="card-value" id="val-c5">--</div>
+        <div class="card-meta">PA Controlada</div>
+    </div>
+    <div class="kpi-card card-c6">
+        <div class="card-header"><span class="card-code">C6</span><i class="fas fa-cane card-icon"></i></div>
+        <div class="card-title">Idosos</div>
+        <div class="card-value" id="val-c6">--</div>
+        <div class="card-meta">Acompanhamento</div>
+    </div>
+    <div class="kpi-card card-c7">
+        <div class="card-header"><span class="card-code">C7</span><i class="fas fa-venus card-icon"></i></div>
+        <div class="card-title">Saúde Mulher</div>
+        <div class="card-value" id="val-c7">--</div>
+        <div class="card-meta">Citopatológico</div>
+    </div>
+</div>
+        </div>
+
+        <!-- Container ÚNICO para a Paginação -->
+        <div id="paginacao-controles-global" class="paginacao-controles">
+            <!-- A paginação será injetada aqui pelo main.js -->
+        </div>
+
+    </main>
+
+    <!-- ============================================= -->
+    <!-- 3. MODAL DE DETALHES DA CRIANÇA (NOVO) -->
+    <!-- ============================================= -->
+    <div class="modal fade" id="modalDetalhesCrianca" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <!-- Cabeçalho com Dados da Criança -->
+                <div class="modal-header bg-primary text-white">
+                    <div>
+                        <h5 class="modal-title" id="lblNomeCrianca">Carregando...</h5>
+                        <small>CNS: <span id="lblCns">...</span> | CPF: <span id="lblCpf">...</span></small>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <!-- Alerta de Resumo -->
+                    <div class="alert alert-info d-flex align-items-center" role="alert">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <div>
+                            <strong>Nota:</strong> Este histórico baseia-se nos códigos de procedimento (IDs) registados no prontuário.
+                        </div>
+                    </div>
+
+                    <!-- Tabela de Vacinas Tomadas -->
+                    <h6 class="text-secondary border-bottom pb-2">Histórico de Vacinas Aplicadas (Q3)</h6>
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Vacina (Grupo)</th>
+                                    <th>Dose</th>
+                                    <th>Local</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelaHistoricoVacinas">
+                                <!-- Preenchido via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <!-- 1. Bootstrap Bundle (JS + Popper) - Obrigatório para o Modal -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- 2. Módulos da Aplicação (Ranking primeiro, depois Main) -->
+    <script src="/js/ranking.js?v=2"></script>
+<script src="js/dashboard.js"></script>
+<script src="/js/main.js?v=18"></script> 
+</body>
+</html>

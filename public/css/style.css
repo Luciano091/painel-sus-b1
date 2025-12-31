@@ -1,0 +1,804 @@
+/* ============================================
+    SISTEMA DE DESIGN - PAINEL E-SUS (v3.3)
+    Paleta: AZUL (Sem Roxo)
+    ============================================ */
+
+/* --- Variáveis CSS (Design Tokens) --- */
+:root {
+    /* Cores Principais (AZUL, SEM ROXO) */
+    --color-primary: #005aaa; /* Azul SUS Forte */
+    --color-primary-dark: #004a8c; /* Azul SUS Mais Escuro */
+    --color-secondary: #f0f6fa; /* Azul Claro (Fundo Principal) */
+    --color-secondary-dark: #c3cfe2;
+    
+    /* Cores de Texto */
+    --color-text-primary: #2c3e50;
+    --color-text-sidebar: rgba(255, 255, 255, 0.95);
+    --color-text-muted: #8898aa;
+    
+    /* Cores de Fundo */
+    --bg-primary: var(--color-secondary); /* Fundo da Página (Azul Claro) */
+    --bg-card: #ffffff;
+    --bg-sidebar: linear-gradient(180deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+    --bg-table-header: var(--color-primary);
+    
+    /* Sombras */
+    --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 15px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 8px 25px rgba(0, 0, 0, 0.1);
+    --shadow-primary: 0 8px 20px rgba(0, 90, 170, 0.25); /* Sombra Azulada */
+    
+    /* Espaçamentos */
+    --spacing-xs: 5px;
+    --spacing-sm: 10px;
+    --spacing-md: 15px;
+    --spacing-lg: 20px;
+    --spacing-xl: 30px;
+    
+    /* Bordas */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 15px;
+    
+    /* Transições */
+    --transition-fast: 0.2s ease;
+    --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Tamanhos */
+    --sidebar-width: 280px;
+}
+
+/* --- Reset e Configuração Geral --- */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    overflow-x: hidden;
+    height: 100%;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--bg-primary);
+    color: var(--color-text-primary);
+    display: flex; /* ATIVA O LAYOUT SIDEBAR */
+}
+
+/* ============================================= */
+/* 1. SIDEBAR (Menu Esquerdo) */
+/* ============================================= */
+#sidebar {
+    display: flex; /* Adicionado */
+    flex-direction: column; /* Adicionado */
+    width: var(--sidebar-width);
+    height: 100vh;
+    background: var(--bg-sidebar);
+    color: var(--color-text-sidebar);
+    position: fixed;
+    top: 0;
+    left: 0;
+    overflow-y: auto;
+    transition: transform var(--transition-normal);
+    z-index: 1000;
+    box-shadow: var(--shadow-lg);
+}
+
+/* --- Cabeçalho do Sidebar (Logo SUS) --- */
+.sidebar-header {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Reutiliza o logo do SUS */
+.header-sus-bar {
+    background-color: transparent;
+    padding: 0;
+    display: flex;
+    align-items: center;
+}
+.sus-logo {
+    width: 25px;
+    height: 25px;
+    position: relative;
+    margin-right: 10px;
+}
+.sus-logo-vertical {
+    width: 7px;
+    height: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+}
+.sus-logo-horizontal {
+    width: 100%;
+    height: 7px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+.sus-logo-vertical,
+.sus-logo-horizontal {
+    background-color: #fff;
+    position: absolute;
+    border-radius: 1px;
+}
+.sus-logo-text {
+    font-family: Arial, sans-serif;
+    color: #fff;
+    font-size: 20px;
+    font-weight: bold;
+}
+.sidebar-header h3 {
+    color: #fff;
+    font-size: 1rem;
+    margin-top: var(--spacing-sm);
+    text-align: left;
+}
+
+
+/* --- Estrutura do Menu "Sanfona" --- */
+.sidebar-menu {
+    list-style: none;
+    padding: var(--spacing-md) 0;
+}
+.sidebar-menu, .submenu {
+    list-style: none;
+    padding-left: 0;
+}
+
+/* --- Links do Menu (Todos os níveis) --- */
+.sidebar-menu a {
+    display: flex;
+    align-items: center;
+    padding: 12px var(--spacing-lg);
+    color: var(--color-text-sidebar);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color var(--transition-fast);
+    border-left: 4px solid transparent;
+}
+
+.sidebar-menu a:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-menu a.active {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-left-color: #fff;
+}
+
+/* Ícones do Menu */
+.sidebar-menu a i {
+    font-size: 16px;
+    width: 20px;
+    margin-right: var(--spacing-md);
+    text-align: center;
+}
+.sidebar-menu a .arrow {
+    margin-left: auto;
+    font-size: 12px;
+    transition: transform var(--transition-normal);
+}
+
+/* Links desativados (placeholders) */
+.sidebar-link-placeholder {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* --- Submenus (Nível 2 e 3) --- */
+.submenu {
+    background-color: rgba(0, 0, 0, 0.15); /* Fundo mais escuro */
+    display: none; /* Escondido por padrão */
+    padding-left: 0;
+}
+
+/* Links do Nível 2 */
+.submenu-item > .submenu-link {
+    padding-left: calc(var(--spacing-lg) + 24px); /* (padding + ícone + margem) */
+}
+
+/* Links do Nível 3 (Links Finais) */
+.submenu .submenu .submenu-item a {
+    padding-left: calc(var(--spacing-lg) + 48px);
+    font-size: 13px;
+}
+
+/* --- Lógica JS (Menu Sanfona) --- */
+/* Quando o JS adicionar 'active' ao LI, a seta gira */
+.menu-item.active > a .arrow,
+.submenu-item.active > a .arrow {
+    transform: rotate(90deg);
+}
+/* Quando o JS adicionar 'active' ao LI, o submenu aparece */
+.menu-item.active > .submenu,
+.submenu-item.active > .submenu {
+    display: block;
+}
+
+
+/* ============================================= */
+/* 2. CONTEÚDO PRINCIPAL (À Direita) */
+/* ============================================= */
+#main-content {
+    flex: 1;
+    margin-left: var(--sidebar-width); /* Empurra o conteúdo */
+    padding: var(--spacing-lg);
+    height: 100vh;
+    overflow-y: auto;
+    transition: margin-left var(--transition-normal);
+}
+
+/* --- Cabeçalho do Conteúdo (Título da Página) --- */
+#content-header {
+    display: flex;
+    align-items: center;
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md) var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    box-shadow: var(--shadow-md);
+}
+
+#page-title-container {
+    flex: 1;
+}
+#page-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin: 0;
+    text-align: left;
+}
+#page-description {
+    font-size: 1rem;
+    color: var(--color-text-muted);
+    margin: 4px 0 0 0;
+}
+
+/* Botão "Hamburguer" (Mobile) */
+#btn-toggle-sidebar {
+    display: none; /* Visível apenas em mobile */
+    font-size: 20px;
+    color: var(--color-text-primary);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: var(--spacing-sm);
+    margin-right: var(--spacing-md);
+}
+
+/* ============================================= */
+/* 3. CONTAINERS DE DADOS (Reutilizados) */
+/* ============================================= */
+
+/* --- Filtros (Estilo Original Mantido) --- */
+.filtros-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: var(--spacing-lg);
+}
+.filtros-container.hidden {
+    display: none;
+}
+
+.filtro-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    background-color: #ffffff;
+    border: 1px solid #ccc;
+    border-radius: var(--radius-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    padding-right: var(--spacing-xl);
+    min-width: 200px;
+    flex: 1;
+    cursor: pointer;
+    transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23555' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right var(--spacing-md) center;
+    background-size: 16px 16px;
+}
+.filtro-select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(0, 90, 170, 0.2);
+}
+
+.btn-buscar-filtros {
+    background: var(--bg-table-header); /* Corrigido para Azul */
+    color: white;
+    border: none;
+    border-radius: var(--radius-md); /* Padronizado */
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    box-shadow: var(--shadow-primary);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    flex-shrink: 0;
+}
+.btn-buscar-filtros:hover:not(:disabled) {
+    background: var(--color-primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0, 90, 170, 0.3);
+}
+
+/* --- Container da Tabela (Estilo Original Mantido) --- */
+.tabela-container {
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    box-shadow: var(--shadow-lg);
+    overflow-x: auto;
+    margin: 0 auto var(--spacing-md) auto;
+    border: 1px solid rgba(220, 220, 220, 0.5);
+    min-height: 200px;
+}
+.tabela-container > p:only-child {
+    text-align: center;
+    padding: var(--spacing-xl) 0;
+    color: var(--color-text-primary);
+    font-size: 15px;
+    font-weight: 500;
+}
+.tabela-container > p.carregando::before {
+    content: '⏳';
+    font-size: 20px;
+    animation: pulse 1.5s ease-in-out infinite;
+    margin-right: var(--spacing-sm);
+}
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* --- Tabela de Dados (Estilo Original Mantido) --- */
+.tabela-dados {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-top: var(--spacing-xs);
+}
+.tabela-dados th,
+.tabela-dados td {
+    border-bottom: 1px solid #e9ecef;
+    padding: var(--spacing-sm) var(--spacing-md);
+    text-align: left;
+}
+.tabela-dados th {
+    background: var(--bg-table-header);
+    color: white;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    border: none;
+    border-bottom: 2px solid var(--color-primary-dark);
+}
+.tabela-dados th:first-child { border-top-left-radius: var(--radius-sm); }
+.tabela-dados th:last-child { border-top-right-radius: var(--radius-sm); }
+
+.tabela-dados tbody tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+.tabela-dados tbody tr:hover {
+    background-color: #e3f2fd;
+}
+.tabela-dados td {
+    color: var(--color-text-primary);
+    font-size: 13px;
+}
+
+/* --- Paginação (Estilo Original Mantido) --- */
+.paginacao-controles {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-md);
+    flex-wrap: wrap;
+}
+.paginacao-controles button {
+    background: var(--bg-table-header); /* Corrigido para Azul */
+    color: white;
+    border: none;
+    border-radius: var(--radius-md); /* Padronizado */
+    padding: var(--spacing-sm) var(--spacing-lg);
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    box-shadow: var(--shadow-primary);
+    min-width: 100px;
+}
+.paginacao-controles button:hover:not(:disabled) {
+    background: var(--color-primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0, 90, 170, 0.3);
+}
+.paginacao-controles button:active:not(:disabled) {
+    transform: translateY(0) scale(0.98);
+}
+.paginacao-controles button:disabled {
+    background: #bdc3c7;
+    color: var(--color-text-muted);
+    cursor: not-allowed;
+    box-shadow: none;
+    opacity: 0.6;
+}
+.paginacao-info {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    padding: var(--spacing-sm) var(--spacing-lg);
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+}
+
+/* --- Estilos da Tabela de KPI (Aba Percentual) --- */
+.kpi-container {
+    padding: 0;
+}
+.kpi-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #fff;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid #ddd;
+    border-radius: var(--radius-sm);
+}
+.kpi-table th,
+.kpi-table td {
+    border: 1px solid #ddd;
+    padding: var(--spacing-sm) var(--spacing-md);
+    text-align: left;
+}
+.kpi-table th {
+    background-color: #f4f6f8;
+    font-size: 14px;
+    color: var(--color-text-primary);
+    font-weight: 600;
+}
+.kpi-table th:first-child { border-top-left-radius: var(--radius-sm); }
+.kpi-table th:last-child { border-top-right-radius: var(--radius-sm); }
+.kpi-table tr:last-child td:first-child { border-bottom-left-radius: var(--radius-sm); }
+.kpi-table tr:last-child td:last-child { border-bottom-right-radius: var(--radius-sm); }
+.kpi-table td {
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--color-text-primary);
+}
+.kpi-table i {
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: 12px;
+}
+.kpi-fonte {
+    text-align: left;
+    margin-top: var(--spacing-sm);
+    font-size: 12px;
+    color: var(--color-text-muted);
+    font-style: italic;
+}
+.kpi-classificacao-suficiente { color: #28a745; }
+.kpi-classificacao-insuficiente { color: #dc3545; }
+
+/* ============================================= */
+/* 4. RESPONSIVIDADE (Layout Sidebar) */
+/* ============================================= */
+@media (max-width: 992px) {
+    #sidebar {
+        transform: translateX(calc(var(--sidebar-width) * -1)); /* Esconde a sidebar */
+    }
+    #main-content {
+        margin-left: 0;
+        width: 100%;
+    }
+    #btn-toggle-sidebar {
+        display: block; /* Mostra o botão "hamburguer" */
+    }
+
+    /* Lógica JS: Quando o body tiver a classe .sidebar-visible */
+    body.sidebar-visible #sidebar {
+        transform: translateX(0);
+    }
+    body.sidebar-visible #main-content {
+        /* (Opcional) Adiciona um overlay escuro sobre o conteúdo */
+        /* filter: blur(2px) brightness(0.7); */
+    }
+}
+
+@media (max-width: 768px) {
+    .paginacao-controles {
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+    .paginacao-controles button {
+        width: 100%;
+        max-width: 200px;
+    }
+    .filtros-container {
+        flex-direction: column;
+    }
+    .filtro-select,
+    .btn-buscar-filtros {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    #page-title {
+        font-size: 1.4rem;
+    }
+    #page-description {
+        font-size: 0.9rem;
+    }
+}
+
+/* ================================================== */
+/* *** CORREÇÃO DO BUG DAS ABAS *** */
+/* ================================================== */
+
+/* A regra original '.tab-content' estava correta, 
+   mas esta regra é mais específica para garantir */
+.tab-content-wrapper > .tab-content {
+    display: none;
+}
+.tab-content-wrapper > .tab-content.active {
+    display: block;
+    animation: fadeIn 0.4s ease-in;
+}
+
+
+/* ================================================== */
+/* *** MELHORIA VISUAL DAS ABAS (v3.1) *** */
+/* ================================================== */
+
+/* 1. O contêiner de conteúdo das abas */
+.tab-content-wrapper {
+    /* A borda superior não é mais arredondada pelo card,
+       mas sim pela própria tabela/container dentro da aba */
+    border-top-left-radius: 0;
+}
+
+/* 2. A navegação das abas (Pessoas, Percentual) - REVISADO */
+.tab-nav {
+    display: flex;
+    max-width: var(--max-width-container);
+    margin: var(--spacing-lg) auto 0 auto;
+    border-bottom: 2px solid #dde2e7; /* Borda inferior mais sutil */
+    z-index: 10;
+    position: relative;
+    /* Remove o padding para os botões alinharem à esquerda */
+    padding-left: 0; 
+}
+
+.tab-btn {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    cursor: pointer;
+    background-color: transparent; /* Fundo limpo */
+    border: none; /* Sem bordas */
+    border-bottom: 3px solid transparent; /* Borda inferior "placeholder" */
+    margin-right: 5px;
+    border-radius: 0; /* Remove o radius superior */
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-text-muted); /* Cor de texto inativo */
+    transition: all var(--transition-normal);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    margin-bottom: -2px; /* Puxa o botão para "sentar" na borda */
+}
+
+.tab-btn i {
+    margin-right: 8px;
+}
+
+/* Hover em botão inativo */
+.tab-btn:hover:not(.active) {
+    background-color: rgba(0, 90, 170, 0.05); /* Fundo azul bem claro */
+    color: var(--color-primary-dark);
+}
+
+/* 3. A aba ATIVA */
+.tab-btn.active {
+    background: transparent; /* Sem fundo */
+    border-bottom: 3px solid var(--color-primary); /* Borda inferior sólida AZUL */
+    color: var(--color-primary); /* Cor do texto ativa */
+    font-weight: 700;
+}
+
+/* 4. Garante que o conteúdo dentro da aba ativa (tabela)
+      tenha os cantos arredondados */
+.tab-content.active > .tabela-container,
+.tab-content.active > .kpi-container {
+    border-top-left-radius: var(--radius-md);
+    border-top-right-radius: var(--radius-md);
+}
+
+/* 5. Corrige o estilo do .tabela-container dentro da aba */
+.tab-content .tabela-container {
+    background: var(--bg-card); /* Devolve o fundo branco */
+    border-radius: 0 0 var(--radius-md) var(--radius-md); /* Arredonda só embaixo */
+    padding: var(--spacing-md);
+    box-shadow: none;
+    border: none;
+    margin: 0;
+    min-height: 200px;
+    border-top: none; /* Garante que não tenha borda dupla */
+}
+
+/* 6. Corrige o container do KPI */
+.tab-content .kpi-container {
+    background: var(--bg-card);
+    padding: var(--spacing-md);
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+/* ================================================== */
+/* *** ATUALIZADO (v3.5) - Barra de Opções e Checkbox *** */
+/* ================================================== */
+
+.tab-options-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: #f8f9fa; /* Um cinza bem claro */
+    border-radius: var(--radius-md) var(--radius-md) 0 0; 
+    margin-top: var(--spacing-md); /* Espaço acima da barra */
+    border: 1px solid #ddd;
+    border-bottom: none; /* Remove a borda de baixo para "fundir" com a tabela */
+}
+
+.tab-options-left {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+    align-items: center;
+}
+
+/* Estilo do Checkbox Customizado */
+.custom-checkbox {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text-muted); /* Começa inativo */
+    transition: color var(--transition-fast);
+}
+
+/* Esconde o checkbox real */
+.custom-checkbox input[type="checkbox"] {
+    display: none;
+}
+
+.custom-checkbox .checkbox-icon {
+    margin-right: var(--spacing-xs);
+    font-size: 16px;
+    opacity: 0.6; /* Começa inativo */
+    transition: opacity var(--transition-fast);
+}
+
+.custom-checkbox .info-icon {
+    margin-left: var(--spacing-xs);
+    color: var(--color-text-muted);
+    font-size: 13px;
+}
+
+/* --- Estilos QUANDO ATIVADO --- */
+.custom-checkbox input[type="checkbox"]:checked ~ span,
+.custom-checkbox input[type="checkbox"]:checked ~ i.info-icon {
+    color: var(--color-text-primary); /* Cor do texto fica forte */
+    font-weight: 600;
+}
+
+.custom-checkbox input[type="checkbox"]:checked + .checkbox-icon {
+    opacity: 1; /* Cor do ícone fica forte */
+}
+
+
+/* Botão Exportar (Estilo da sua imagem ...070022.png) */
+.btn-exportar {
+    background-color: #4B5563; /* Cinza escuro */
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    transition: background-color var(--transition-fast);
+}
+
+.btn-exportar:hover {
+    background-color: #374151; /* Mais escuro no hover */
+}
+
+.btn-exportar .arrow-export {
+    font-size: 10px;
+    margin-left: 4px;
+}
+
+.sidebar-footer {
+    margin-top: auto; /* Empurra para o final da sidebar */
+    padding: 20px;
+    width: 100%;
+}
+
+.btn-logout-custom {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 12px;
+    background-color: white; /* Fundo Branco */
+    color: #005F8F; /* Texto Azul do Tema */
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    text-decoration: none;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+
+.btn-logout-custom:hover {
+    background-color: #f0f0f0;
+    transform: scale(1.02);
+    color: #004a70;
+}
+
+/* Dashboard Grid */
+.dashboard-title { color: #005F8F; margin-bottom: 20px; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+.dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; padding-bottom: 40px; }
+
+/* Card Design */
+.kpi-card {
+    background: white; border-radius: 8px; padding: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-top: 4px solid #ccc;
+    display: flex; flex-direction: column; justify-content: space-between;
+    transition: transform 0.2s;
+}
+.kpi-card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+
+/* Header e Conteúdo do Card */
+.card-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
+.card-code { background: #eee; padding: 2px 8px; border-radius: 4px; font-weight: bold; color: #555; font-size: 0.8rem; }
+.card-icon { font-size: 1.5rem; opacity: 0.8; }
+.card-title { font-size: 0.9rem; color: #666; font-weight: 600; margin-bottom: 5px; min-height: 40px; }
+.card-value { font-size: 2.2rem; font-weight: 700; color: #333; }
+.card-meta { font-size: 0.8rem; color: #888; margin-top: 5px; }
+
+/* Cores Específicas */
+.card-c1 { border-top-color: #2196f3; } .card-c1 .card-icon { color: #2196f3; }
+.card-c2 { border-top-color: #00bcd4; } .card-c2 .card-icon { color: #00bcd4; }
+.card-c3 { border-top-color: #e91e63; } .card-c3 .card-icon { color: #e91e63; }
+.card-c4 { border-top-color: #ff9800; } .card-c4 .card-icon { color: #ff9800; }
+.card-c5 { border-top-color: #f44336; } .card-c5 .card-icon { color: #f44336; }
+.card-c6 { border-top-color: #9c27b0; } .card-c6 .card-icon { color: #9c27b0; }
+.card-c7 { border-top-color: #c2185b; } .card-c7 .card-icon { color: #c2185b; }

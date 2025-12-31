@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão de Usuários - Painel e-SUS</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+    <nav id="sidebar">
+        <div class="sidebar-header">
+            <h3>Painel e-SUS</h3>
+        </div>
+        <ul class="sidebar-menu">
+             <li class="menu-item">
+                <a href="/index.html" class="menu-link"><i class="fas fa-home"></i> Início</a>
+            </li>
+            <li class="menu-item">
+                <a href="/admin-users.html" class="menu-link active"><i class="fas fa-users-cog"></i> Usuários</a>
+            </li>
+        </ul>
+
+        <div class="sidebar-footer">
+            <button id="logoutBtn" class="btn-logout-custom">
+                <i class="fas fa-sign-out-alt"></i> Sair
+            </button>
+        </div>
+    </nav>
+
+    <main id="main-content">
+        <header id="content-header" class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Gestão de Usuários</h2>
+            <button id="btn-new-user" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Novo Usuário
+            </button>
+        </header>
+
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Nome</th>
+                                <th>Email</th>
+                                <th>Perfil</th>
+                                <th>Unidade</th>
+                                <th>Equipe</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="user-table-body">
+                            </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="modal fade" id="user-modal" tabindex="-1" aria-labelledby="user-modal-label" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="user-modal-label">Novo Usuário</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                
+                <div class="modal-body">
+                    <form id="user-form">
+                        <input type="hidden" id="user-id">
+
+                        <div class="mb-3">
+                            <label for="user-name" class="form-label">Nome</label>
+                            <input type="text" class="form-control" id="user-name" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="user-email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="user-email" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="user-password" class="form-label">Senha</label>
+                            <input type="password" class="form-control" id="user-password">
+                            <div id="password-help" class="form-text text-muted d-none">
+                                Deixe em branco para manter a senha atual.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="user-role" class="form-label">Perfil</label>
+                            <select class="form-select" id="userProfile" required>
+                                <option value="" selected disabled>AGUARDE... (Buscando)</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="user-unit" class="form-label">Unidade de Saúde</label>
+                            <select id="user-unit" class="form-select">
+                                <option value="">Selecione a Unidade...</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="user-team" class="form-label">Equipe</label>
+                            <select id="user-team" class="form-select" disabled>
+                                <option value="">Selecione a Equipe...</option>
+                            </select>
+                        </div>
+
+                        <div class="modal-footer px-0 pb-0">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Salvar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/admin-users.js"></script> </body>
+</html>

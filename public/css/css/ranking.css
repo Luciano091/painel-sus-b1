@@ -1,0 +1,89 @@
+/* ============================================
+   MÓDULO RANKING (Visual "Clean" Integrado)
+   Baseado no style.css (v3.3)
+   ============================================ */
+
+/* Tabela Clean - Visual limpo e sem bordas pesadas */
+.table-clean {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-card); /* Usa o fundo branco do seu tema */
+}
+
+/* Cabeçalho: Branco com Texto na cor Primária (Azul SUS) */
+.table-clean thead th {
+    background-color: #fff;
+    color: var(--color-primary); /* Azul definido no seu style.css */
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: var(--spacing-md) var(--spacing-sm);
+    border-bottom: 1px solid #e9ecef;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.table-clean tbody tr {
+    border-bottom: 1px solid #f1f3f5;
+    height: 60px; /* Altura confortável para leitura */
+    transition: background-color var(--transition-fast);
+}
+
+.table-clean tbody tr:hover {
+    background-color: var(--color-secondary); /* Azul claro suave no hover */
+}
+
+/* Coluna Equipe */
+.td-equipe {
+    padding-left: var(--spacing-lg);
+    color: var(--color-text-primary);
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.td-center, .th-center {
+    text-align: center;
+    vertical-align: middle;
+}
+
+/* --- BADGES (As "Pílulas" coloridas) --- */
+
+/* Badge Cinza (Para A, B, C, D) */
+.badge-grey {
+    background-color: #f1f3f5;
+    color: #5e6c84;
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    font-weight: 600;
+    min-width: 30px;
+    display: inline-block;
+}
+
+/* Badge Redonda (Para NM e DN) */
+.badge-pill {
+    background-color: #e9ecef;
+    color: #495057;
+    padding: 6px 14px;
+    border-radius: 20px; /* Totalmente redondo */
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+/* Badge Pontuação (Laranja Suave igual imagem) */
+.badge-score {
+    background-color: #fff3e0; /* Fundo laranja claro */
+    color: #e67e22; /* Texto laranja forte */
+    padding: 8px 16px;
+    border-radius: var(--radius-md);
+    font-weight: 700;
+    font-size: 1rem;
+    box-shadow: var(--shadow-sm);
+}
+
+/* Loading */
+.loading-clean {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--color-text-muted);
+}
