@@ -3035,81 +3035,649 @@ window.renderizarFiltrosB1 = function() {
 
 
 // =================================================================
-// 🎨 B1: FILTROS (2025/2026) - VERSÃO BLINDADA (COM ATRASO)
+
+
+
+// 🧠 DADOS SIMULADOS (FIXOS PARA TESTE)
+
+
+
 // =================================================================
+
+
+
+const dadosSimuladosB1 = {
+
+
+
+    "1": { nome: "Equipe 001 - Centro", microareas: ["01", "02", "03", "04"] },
+
+
+
+    "2": { nome: "Equipe 002 - Rural", microareas: ["10", "11", "12"] },
+
+
+
+    "3": { nome: "Equipe 003 - Nova Esperança", microareas: ["20", "21", "25"] }
+
+
+
+};
+
+
+
+
+
+
+
+// =================================================================
+
+
+
+// 🎨 1. RENDERIZAR E ATIVAR FILTROS
+
+
+
+// =================================================================
+
+
+
 window.renderizarFiltrosB1 = function() {
-    console.log("🎨 Aguardando tela para desenhar filtros...");
+
+
+
+    console.log("🎨 Iniciando filtros B1...");
+
+
+
     
-    // O segredo: Esperar 500ms para garantir que o container existe
+
+
+
+    // Aguarda o container existir
+
+
+
     setTimeout(function() {
+
+
+
         const container = document.getElementById('filtros-container-global');
-        
-        if (!container) {
-            console.error("❌ Erro: O container 'filtros-container-global' não apareceu a tempo.");
-            return;
-        }
 
-        console.log("✅ Container encontrado! Desenhando filtros...");
 
-        // 1. GERAR A LISTA DE MESES (2026 e 2025)
+
+        if (!container) return;
+
+
+
+
+
+
+
+        // A. Gerar Lista de Meses (2025 e 2026)
+
+
+
         let htmlListaCompetencias = '';
+
+
+
         const anos = [2026, 2025];
+
+
+
         const nomesMeses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
+
+
+
+
+
+
         anos.forEach(ano => {
+
+
+
             htmlListaCompetencias += `<li class="p-2 border-bottom bg-light ${ano === 2025 ? 'border-top' : ''}"><small class="fw-bold text-muted ps-2">Mensal ${ano}</small></li>`;
+
+
+
             for (let i = 0; i < 12; i++) {
+
+
+
                 const mesNumero = String(i + 1).padStart(2, '0');
+
+
+
                 const valor = `${ano}-${mesNumero}`;
+
+
+
                 const label = `${nomesMeses[i]}/${ano}`;
+
+
+
                 htmlListaCompetencias += `<li><label class="dropdown-item py-2"><input type="checkbox" class="form-check-input me-2 check-mes" value="${valor}"> ${label}</label></li>`;
+
+
+
             }
+
+
+
         });
 
-        // 2. INJETAR HTML NA TELA
+
+
+
+
+
+
+        // B. Injetar HTML (Com eventos onchange)
+
+
+
         container.innerHTML = '';
+
+
+
         container.classList.remove('hidden');
+
+
+
         container.style.display = 'block';
 
+
+
+
+
+
+
         container.innerHTML = `
+
+
+
             <div class="card mb-3 shadow-sm" style="border-left: 5px solid #0d6efd;">
+
+
+
                 <div class="card-body py-3">
+
+
+
                     <div class="row g-3 align-items-end">
+
+
+
                         <div class="col-md-4">
+
+
+
                             <label class="form-label fw-bold small text-muted">Equipe</label>
-                            <select id="sel-equipe-b1" class="form-select"><option value="">Todas as Equipes</option><option value="1">Equipe 001</option></select>
+
+
+
+                            <select id="sel-equipe-b1" class="form-select" onchange="window.atualizarMicroareasB1()">
+
+
+
+                                <option value="">Carregando...</option>
+
+
+
+                            </select>
+
+
+
                         </div>
+
+
+
                         <div class="col-md-3">
+
+
+
                             <label class="form-label fw-bold small text-muted">Microárea</label>
-                            <select id="sel-microarea-b1" class="form-select"><option value="">Todas</option></select>
+
+
+
+                            <select id="sel-microarea-b1" class="form-select">
+
+
+
+                                <option value="">Selecione uma equipe</option>
+
+
+
+                            </select>
+
+
+
                         </div>
+
+
+
                         <div class="col-md-3">
+
+
+
                             <label class="form-label fw-bold small text-muted">Competências</label>
+
+
+
                             <div class="dropdown">
+
+
+
                                 <button class="btn bg-white border w-100 d-flex justify-content-between align-items-center" type="button" id="btnDropdownMeses" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" style="border-color: #ced4da; height: 38px;">
+
+
+
                                     <span id="texto-meses-selecionados">Selecione...</span>
+
+
+
                                     <i class="fas fa-chevron-down" style="font-size: 10px;"></i>
+
+
+
                                 </button>
+
+
+
                                 <ul class="dropdown-menu p-0 shadow w-100" style="max-height: 250px; overflow-y: auto;">
+
+
+
                                     ${htmlListaCompetencias}
+
+
+
                                 </ul>
+
+
+
                             </div>
+
+
+
                         </div>
+
+
+
                         <div class="col-md-2">
-                            <button class="btn btn-primary w-100" onclick="alert('Buscando dados...')"><i class="fas fa-search"></i> Buscar</button>
+
+
+
+                            <button class="btn btn-primary w-100" onclick="window.executarBuscaB1()"><i class="fas fa-search"></i> Buscar</button>
+
+
+
                         </div>
+
+
+
                     </div>
+
+
+
                 </div>
+
+
+
             </div>
+
+
+
         `;
 
-        // 3. ATIVAR CONTADOR DE SELEÇÃO
-        const checkboxes = document.querySelectorAll('.check-mes');
-        const texto = document.getElementById('texto-meses-selecionados');
-        checkboxes.forEach(c => c.addEventListener('change', () => {
-            const qtd = document.querySelectorAll('.check-mes:checked').length;
-            texto.textContent = qtd === 0 ? "Selecione..." : (qtd === 1 ? document.querySelector('.check-mes:checked').parentNode.textContent.trim() : `${qtd} meses selecionados`);
-        }));
 
-    }, 500); // <--- O ATRASO MÁGICO DE MEIO SEGUNDO
+
+
+
+
+
+        // C. Configurar Eventos e Carregar Dados Iniciais
+
+
+
+        configurarEventosCheckbox();
+
+
+
+        window.carregarOpcoesFiltros();
+
+
+
+
+
+
+
+    }, 500);
+
+
+
 };
+
+
+
+
+
+
+
+// =================================================================
+
+
+
+// ⚙️ 2. FUNÇÕES AUXILIARES (Lógica dos Filtros)
+
+
+
+// =================================================================
+
+
+
+
+
+
+
+// Atualiza o texto do botão de meses
+
+
+
+function configurarEventosCheckbox() {
+
+
+
+    const checkboxes = document.querySelectorAll('.check-mes');
+
+
+
+    const texto = document.getElementById('texto-meses-selecionados');
+
+
+
+    checkboxes.forEach(c => c.addEventListener('change', () => {
+
+
+
+        const qtd = document.querySelectorAll('.check-mes:checked').length;
+
+
+
+        texto.textContent = qtd === 0 ? "Selecione..." : (qtd === 1 ? document.querySelector('.check-mes:checked').parentNode.textContent.trim() : `${qtd} meses selecionados`);
+
+
+
+    }));
+
+
+
+}
+
+
+
+
+
+
+
+// Preenche o Select de Equipes
+
+
+
+window.carregarOpcoesFiltros = function() {
+
+
+
+    const selEquipe = document.getElementById('sel-equipe-b1');
+
+
+
+    if(!selEquipe) return;
+
+
+
+    
+
+
+
+    selEquipe.innerHTML = '<option value="">Todas as Equipes</option>';
+
+
+
+    for (const [id, dados] of Object.entries(dadosSimuladosB1)) {
+
+
+
+        const option = document.createElement('option');
+
+
+
+        option.value = id;
+
+
+
+        option.textContent = dados.nome;
+
+
+
+        selEquipe.appendChild(option);
+
+
+
+    }
+
+
+
+};
+
+
+
+
+
+
+
+// Atualiza o Select de Microáreas baseado na Equipe
+
+
+
+window.atualizarMicroareasB1 = function() {
+
+
+
+    const idEquipe = document.getElementById('sel-equipe-b1').value;
+
+
+
+    const selMicro = document.getElementById('sel-microarea-b1');
+
+
+
+    
+
+
+
+    selMicro.innerHTML = '<option value="">Todas</option>';
+
+
+
+
+
+
+
+    if (idEquipe && dadosSimuladosB1[idEquipe]) {
+
+
+
+        const listaMas = dadosSimuladosB1[idEquipe].microareas;
+
+
+
+        listaMas.forEach(ma => {
+
+
+
+            const option = document.createElement('option');
+
+
+
+            option.value = ma;
+
+
+
+            option.textContent = `MA - ${ma}`;
+
+
+
+            selMicro.appendChild(option);
+
+
+
+        });
+
+
+
+    } else {
+
+
+
+        if(!idEquipe) selMicro.innerHTML = '<option value="">Selecione uma equipe</option>';
+
+
+
+    }
+
+
+
+};
+
+
+
+
+
+
+
+// =================================================================
+
+
+
+// 🔎 3. FUNÇÃO DE BUSCA
+
+
+
+// =================================================================
+
+
+
+window.executarBuscaB1 = function() {
+
+
+
+    const equipeId = document.getElementById('sel-equipe-b1').value;
+
+
+
+    const microarea = document.getElementById('sel-microarea-b1').value;
+
+
+
+    
+
+
+
+    const mesesSelecionados = [];
+
+
+
+    document.querySelectorAll('.check-mes:checked').forEach(chk => mesesSelecionados.push(chk.value));
+
+
+
+
+
+
+
+    if (mesesSelecionados.length === 0) {
+
+
+
+        alert("⚠️ Selecione pelo menos um mês.");
+
+
+
+        return;
+
+
+
+    }
+
+
+
+
+
+
+
+    // Feedback visual
+
+
+
+    const btn = document.querySelector('#filtros-container-global button.btn-primary');
+
+
+
+    const textoOriginal = btn.innerHTML;
+
+
+
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
+
+
+
+    
+
+
+
+    // Simula envio
+
+
+
+    console.log("🚀 DADOS PARA API:", { equipeId, microarea, mesesSelecionados });
+
+
+
+    
+
+
+
+    setTimeout(() => {
+
+
+
+        alert(`✅ Busca Enviada!\nEquipe: ${equipeId || 'Todas'}\nMicroárea: ${microarea || 'Todas'}\nMeses: ${mesesSelecionados.join(', ')}`);
+
+
+
+        btn.innerHTML = textoOriginal;
+
+
+
+        
+
+
+
+        // AQUI VOCÊ CONECTARÁ SUA TABELA REAL:
+
+
+
+        // carregarTabelaB1(equipeId, microarea, mesesSelecionados);
+
+
+
+    }, 1000);
+
+
+
+};
+
+
