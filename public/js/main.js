@@ -2915,77 +2915,201 @@ console.log("🔓 Função B1 liberada para o HTML!");
 
 
 // =================================================================
-// 🎨 FUNÇÃO VISUAL B1: CORRIGIDA (PADRÃO IDÊNTICO AO C1)
+// 🎨 B1: FILTROS (APENAS MESES 2026 e 2025 - SEM QUADRIMESTRES)
 // =================================================================
 window.renderizarFiltrosB1 = function() {
-    console.log("🎨 Renderizando filtros B1 (Visual Ajustado)...");
+    console.log("🎨 Gerando lista de meses (2026 e 2025)...");
     
+    const container = document.getElementById('filtros-container-global');
+    if (!container) return;
+
+    // 1. GERAR A LISTA DE MESES (HTML DINÂMICO)
+    let htmlListaCompetencias = '';
+    
+    // Configuração dos anos e meses
+    const anos = [2026, 2025]; // Ordem: 2026 primeiro, depois 2025
+    const nomesMeses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+    anos.forEach(ano => {
+        // Título separador do ano
+        htmlListaCompetencias += `<li class="p-2 border-bottom bg-light ${ano === 2025 ? 'border-top' : ''}"><small class="fw-bold text-muted ps-2">Mensal ${ano}</small></li>`;
+        
+        // Loop reverso (Dezembro -> Janeiro) para o ano aparecer do fim para o começo
+        // Se preferir Janeiro -> Dezembro, troque o loop para: for (let i = 0; i < 12; i++)
+        for (let i = 0; i < 12; i++) { // Fiz ordem Janeiro -> Dezembro (Crescente) para ficar mais fácil de achar
+            
+            // Formata valor: 2025-01, 2025-02...
+            const mesNumero = String(i + 1).padStart(2, '0');
+            const valor = `${ano}-${mesNumero}`;
+            const label = `${nomesMeses[i]}/${ano}`;
+            
+            htmlListaCompetencias += `
+                <li>
+                    <label class="dropdown-item py-2">
+                        <input type="checkbox" class="form-check-input me-2 check-mes" value="${valor}"> 
+                        ${label}
+                    </label>
+                </li>`;
+        }
+    });
+
+    // 2. DESENHAR A TELA
+    container.innerHTML = '';
+    container.classList.remove('hidden');
+    container.style.display = 'block';
+
+    container.innerHTML = `
+        <div class="card mb-3 shadow-sm" style="border-left: 5px solid #0d6efd;">
+            <div class="card-body py-3">
+                <div class="row g-3 align-items-end">
+                    
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold small text-muted">Equipe</label>
+                        <select id="sel-equipe-b1" class="form-select">
+                            <option value="">Todas as Equipes</option>
+                            <option value="1">Equipe 001 - Centro</option>
+                            <option value="2">Equipe 002 - Rural</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold small text-muted">Microárea</label>
+                        <select id="sel-microarea-b1" class="form-select">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold small text-muted">Competências</label>
+                        <div class="dropdown" id="dropdown-meses-container">
+                            
+                            <button class="btn bg-white border w-100 d-flex justify-content-between align-items-center" 
+                                    type="button" 
+                                    id="btnDropdownMeses" 
+                                    data-bs-toggle="dropdown" 
+                                    data-bs-auto-close="outside" 
+                                    aria-expanded="false"
+                                    style="border-color: #ced4da; color: #495057; height: 38px;">
+                                <span id="texto-meses-selecionados" style="font-weight: normal; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">Selecione...</span>
+                                <i class="fas fa-chevron-down" style="font-size: 10px; opacity: 0.7;"></i>
+                            </button>
+
+                            <ul class="dropdown-menu p-0 shadow w-100" aria-labelledby="btnDropdownMeses" style="max-height: 250px; overflow-y: auto;">
+                                ${htmlListaCompetencias}
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="col-md-2">
+                        <button class="btn btn-primary w-100" onclick="executarBuscaB1()">
+                            <i class="fas fa-search"></i> Buscar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // 3. REAPLICAR LÓGICA DE EVENTOS (Contagem de selecionados)
+    setTimeout(() => {
+        const checkboxes = document.querySelectorAll('.check-mes');
+        const textoLabel = document.getElementById('texto-meses-selecionados');
+
+        const atualizarTexto = () => {
+            const marcados = document.querySelectorAll('.check-mes:checked');
+            if (marcados.length === 0) {
+                textoLabel.textContent = "Selecione...";
+            } else if (marcados.length === 1) {
+                textoLabel.textContent = marcados[0].parentNode.textContent.trim();
+            } else {
+                textoLabel.textContent = `${marcados.length} meses selecionados`;
+            }
+        };
+
+        checkboxes.forEach(chk => {
+            chk.addEventListener('change', atualizarTexto);
+        });
+    }, 500);
+};
+
+
+
+// =================================================================
+// 🎨 B1: FILTROS (2025/2026) - VERSÃO BLINDADA (COM ATRASO)
+// =================================================================
+window.renderizarFiltrosB1 = function() {
+    console.log("🎨 Aguardando tela para desenhar filtros...");
+    
+    // O segredo: Esperar 500ms para garantir que o container existe
     setTimeout(function() {
         const container = document.getElementById('filtros-container-global');
         
-        if (container) {
-            container.innerHTML = '';
-            container.classList.remove('hidden');
-            container.style.display = 'block';
+        if (!container) {
+            console.error("❌ Erro: O container 'filtros-container-global' não apareceu a tempo.");
+            return;
+        }
 
-            container.innerHTML = `
-                <div class="card mb-3 shadow-sm" style="border-left: 5px solid #0d6efd;">
-                    <div class="card-body py-3">
-                        <div class="row g-3 align-items-end">
-                            
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold small text-muted">Equipe</label>
-                                <select id="sel-equipe-b1" class="form-select">
-                                    <option value="">Todas as Equipes</option>
-                                    <option value="1">Equipe 001 - Centro</option>
-                                    <option value="2">Equipe 002 - Rural</option>
-                                </select>
-                            </div>
+        console.log("✅ Container encontrado! Desenhando filtros...");
 
-                            <div class="col-md-3">
-                                <label class="form-label fw-bold small text-muted">Microárea</label>
-                                <select id="sel-microarea-b1" class="form-select">
-                                    <option value="">Todas</option>
-                                </select>
-                            </div>
+        // 1. GERAR A LISTA DE MESES (2026 e 2025)
+        let htmlListaCompetencias = '';
+        const anos = [2026, 2025];
+        const nomesMeses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
-                            <div class="col-md-3">
-                                <label class="form-label fw-bold small text-muted">Competências</label>
-                                <div class="dropdown">
-                                    <button class="btn bg-white border w-100 d-flex justify-content-between align-items-center" 
-                                            type="button" 
-                                            id="dropdownMeses" 
-                                            data-bs-toggle="dropdown" 
-                                            aria-expanded="false"
-                                            style="border-color: #ced4da; color: #495057; height: 38px;">
-                                        
-                                        <span style="font-weight: normal;">Selecione os Meses...</span>
-                                        <i class="fas fa-chevron-down" style="font-size: 10px; opacity: 0.7;"></i>
-                                    </button>
+        anos.forEach(ano => {
+            htmlListaCompetencias += `<li class="p-2 border-bottom bg-light ${ano === 2025 ? 'border-top' : ''}"><small class="fw-bold text-muted ps-2">Mensal ${ano}</small></li>`;
+            for (let i = 0; i < 12; i++) {
+                const mesNumero = String(i + 1).padStart(2, '0');
+                const valor = `${ano}-${mesNumero}`;
+                const label = `${nomesMeses[i]}/${ano}`;
+                htmlListaCompetencias += `<li><label class="dropdown-item py-2"><input type="checkbox" class="form-check-input me-2 check-mes" value="${valor}"> ${label}</label></li>`;
+            }
+        });
 
-                                    <ul class="dropdown-menu p-0 shadow w-100" aria-labelledby="dropdownMeses" style="max-height: 250px; overflow-y: auto; border: 1px solid rgba(0,0,0,.15);">
-                                        <li class="p-2 border-bottom bg-light"><small class="fw-bold text-muted ps-2">2025</small></li>
-                                        <li><label class="dropdown-item py-2"><input type="checkbox" class="form-check-input me-2" checked> Jan/2025</label></li>
-                                        <li><label class="dropdown-item py-2"><input type="checkbox" class="form-check-input me-2"> Fev/2025</label></li>
-                                        
-                                        <li class="p-2 border-bottom bg-light border-top"><small class="fw-bold text-muted ps-2">2024</small></li>
-                                        <li><label class="dropdown-item py-2"><input type="checkbox" class="form-check-input me-2"> Dez/2024</label></li>
-                                        <li><label class="dropdown-item py-2"><input type="checkbox" class="form-check-input me-2"> Nov/2024</label></li>
-                                        <li><label class="dropdown-item py-2"><input type="checkbox" class="form-check-input me-2"> Out/2024</label></li>
-                                    </ul>
-                                </div>
-                            </div>
+        // 2. INJETAR HTML NA TELA
+        container.innerHTML = '';
+        container.classList.remove('hidden');
+        container.style.display = 'block';
 
-                            <div class="col-md-2">
-                                <button class="btn btn-primary w-100" onclick="alert('Buscando dados...')">
-                                    <i class="fas fa-search"></i> Buscar
+        container.innerHTML = `
+            <div class="card mb-3 shadow-sm" style="border-left: 5px solid #0d6efd;">
+                <div class="card-body py-3">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold small text-muted">Equipe</label>
+                            <select id="sel-equipe-b1" class="form-select"><option value="">Todas as Equipes</option><option value="1">Equipe 001</option></select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small text-muted">Microárea</label>
+                            <select id="sel-microarea-b1" class="form-select"><option value="">Todas</option></select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small text-muted">Competências</label>
+                            <div class="dropdown">
+                                <button class="btn bg-white border w-100 d-flex justify-content-between align-items-center" type="button" id="btnDropdownMeses" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" style="border-color: #ced4da; height: 38px;">
+                                    <span id="texto-meses-selecionados">Selecione...</span>
+                                    <i class="fas fa-chevron-down" style="font-size: 10px;"></i>
                                 </button>
+                                <ul class="dropdown-menu p-0 shadow w-100" style="max-height: 250px; overflow-y: auto;">
+                                    ${htmlListaCompetencias}
+                                </ul>
                             </div>
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-primary w-100" onclick="alert('Buscando dados...')"><i class="fas fa-search"></i> Buscar</button>
                         </div>
                     </div>
                 </div>
-            `;
-            console.log("✅ Filtros B1 (Estilo Select Branco) desenhados.");
-        }
-    }, 200);
+            </div>
+        `;
+
+        // 3. ATIVAR CONTADOR DE SELEÇÃO
+        const checkboxes = document.querySelectorAll('.check-mes');
+        const texto = document.getElementById('texto-meses-selecionados');
+        checkboxes.forEach(c => c.addEventListener('change', () => {
+            const qtd = document.querySelectorAll('.check-mes:checked').length;
+            texto.textContent = qtd === 0 ? "Selecione..." : (qtd === 1 ? document.querySelector('.check-mes:checked').parentNode.textContent.trim() : `${qtd} meses selecionados`);
+        }));
+
+    }, 500); // <--- O ATRASO MÁGICO DE MEIO SEGUNDO
 };
