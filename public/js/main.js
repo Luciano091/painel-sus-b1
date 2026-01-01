@@ -683,6 +683,9 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (tipoNormalizado.includes('mulher') || tipoNormalizado === 'c7') {
                 carregarLayoutMulher();
             }
+            else if (tipoNormalizado.includes('b1') || tipoNormalizado === 'b1') {
+                carregarLayoutB1();
+            }
             else {
                 console.warn('Rota genérica acionada para:', config.tipo);
                 // Evita chamar buscarDadosPaginados se não tiver certeza da rota, para não dar 401
@@ -1349,58 +1352,65 @@ function carregarRankingInfantil() {
             }
         }
     
-        async function preencherFiltroMicroareas(ineEquipe, idSelectMicroarea) {
+        // =================================================================
+// FUNÇÃO CORRIGIDA: Preencher Microáreas e Destravar Campo
+// =================================================================
+window.preencherFiltroMicroareas = async function(ineEquipe, idSelectMicroarea) {
     const select = document.getElementById(idSelectMicroarea);
     if (!select) return;
 
-    select.innerHTML = '<option value="">Carregando microáreas...</option>';
+    // 1. Estado de Carregamento
+    select.innerHTML = '<option value="">Carregando...</option>';
+    select.disabled = true; // Trava enquanto carrega
 
     try {
         const token = localStorage.getItem('token');
-        if (!token) {
-            window.location.href = '/login.html';
+        if (!token) return;
+
+        // Se não tiver equipe selecionada, limpa e mantém travado
+        if (!ineEquipe) {
+            select.innerHTML = '<option value="">Selecione a equipe</option>';
+            select.disabled = true;
             return;
         }
 
-        // CORREÇÃO: Monta a URL dinamicamente para buscar microáreas com ou sem filtro de equipe.
-        const url = `/api/indicadores/microareas${ineEquipe ? `?equipe=${ineEquipe}` : ''}`;
-
+        // 2. Busca na API
+        // Nota: A API deve retornar as microáreas vinculadas à eSF (INE) informada
+        const url = `/api/indicadores/microareas?equipe=${ineEquipe}`;
         const response = await fetch(url, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        if (response.status === 401 || response.status === 403) {
-            localStorage.clear();
-            window.location.href = '/login.html';
-            return;
-        }
-
-        if (!response.ok) {
-            throw new Error(`Erro HTTP ${response.status} ao buscar microáreas`);
-        }
+        if (!response.ok) throw new Error('Erro na API');
 
         const microareas = await response.json();
         
         select.innerHTML = '<option value="">Todas as Microáreas</option>';
         
-        if (Array.isArray(microareas)) {
+        // 3. Preenche e DESTRAVA
+        if (Array.isArray(microareas) && microareas.length > 0) {
             microareas.forEach(ma => {
-                // A API retorna um array de strings
-                if (ma) { // Garante que não adiciona opções vazias
+                if (ma) { // Ignora nulos
                     const option = document.createElement('option');
                     option.value = ma;
                     option.textContent = `Microárea ${ma}`;
                     select.appendChild(option);
                 }
             });
+            // O PULO DO GATO: Habilita o campo para o usuário clicar
+            select.disabled = false; 
+            console.log(`✅ Microáreas carregadas para equipe ${ineEquipe}: ${microareas.length}`);
+        } else {
+            select.innerHTML = '<option value="">Nenhuma microárea encontrada</option>';
+            select.disabled = true;
         }
+
     } catch (error) {
-        console.error('Erro ao preencher filtro de microáreas:', error);
-        if (select) {
-            select.innerHTML = '<option value="">Erro ao carregar</option>';
-        }
+        console.error('Erro microáreas:', error);
+        select.innerHTML = '<option value="">Erro ao carregar</option>';
+        select.disabled = true;
     }
-}
+};
     
         // Garante que as funções estejam acessíveis no escopo global
         window.preencherFiltroEquipes = preencherFiltroEquipes;
@@ -1984,139 +1994,155 @@ window.construirPaginacao = function(api, pagination, filtros, container) {
 };
 
 // =================================================================
-// MÓDULO B1 - SAÚDE BUCAL (1ª CONSULTA ODONTOLÓGICA)
+// 1. LAYOUT B1 - VERSÃO AUTOSSUFICIENTE (Filtros + Lógica Integrados)
 // =================================================================
+// =================================================================
+// 1. LAYOUT B1 - LIMPO E MANUAL (Sem Auto-Seleção)
+// =================================================================
+window.carregarLayoutB1 = function() {
+    console.log("🚀 B1: Carregando layout (Modo Manual)...");
 
-// 1. LAYOUT B1
-function carregarLayoutB1() {
-    console.log("🚀 Carregando tela do B1...");
-
-    // 1. INJETAR OS FILTROS (Código Validado)
     const filtrosContainer = document.getElementById('filtros-container-global');
+    const tabelaContainer = document.getElementById('tabela-container-global');
+
     if (filtrosContainer) {
         filtrosContainer.style.display = 'block';
         filtrosContainer.classList.remove('hidden');
+
+        // Gera HTML dos Meses (Sem marcar nada)
+        let htmlMeses = '';
+        [2026, 2025].forEach(ano => {
+            htmlMeses += `<li class="p-2 border-bottom bg-light"><small class="fw-bold text-muted ps-2">ANO ${ano}</small></li>`;
+            ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'].forEach((m, i) => {
+                const val = `${ano}-${String(i+1).padStart(2,'0')}`;
+                htmlMeses += `<li><label class="dropdown-item py-2"><input type="checkbox" class="form-check-input me-2 check-mes-b1" value="${val}"> ${m}/${ano}</label></li>`;
+            });
+        });
+
         filtrosContainer.innerHTML = `
-            <div class="card mb-3" style="border: 1px solid #e0e0e0;">
+            <div class="card mb-3 shadow-sm" style="border-left: 5px solid #0d6efd;">
                 <div class="card-body py-3">
                     <div class="row g-3 align-items-end">
-                        <div class="col-md-5">
-                            <label class="form-label fw-bold text-muted small">Equipe</label>
-                            <select id="sel-equipe-b1" class="form-select">
-                                <option value="">Todas as Equipes</option>
-                            </select>
-                        </div>
                         <div class="col-md-4">
-                            <label class="form-label fw-bold text-muted small">Microárea</label>
-                            <select id="sel-microarea-b1" class="form-select">
-                                <option value="">Todas</option>
+                            <label class="form-label fw-bold small text-muted">Equipe (eSF Recomendado)</label>
+                            <select id="filtro-equipe-b1" class="form-select">
+                                <option value="">Carregando...</option>
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <button class="btn btn-primary w-100" onclick="carregarDadosTelaB1(1)">
-                                <i class="fas fa-filter"></i> Filtrar
+                            <label class="form-label fw-bold small text-muted">Microárea</label>
+                            <select id="filtro-microarea-b1" class="form-select" disabled>
+                                <option value="">Selecione a equipe</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold small text-muted">Competências</label>
+                            <div class="dropdown">
+                                <button class="btn bg-white border w-100 d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                                    <span id="txt-meses-b1">Selecione os meses...</span> 
+                                    <i class="fas fa-chevron-down small"></i>
+                                </button>
+                                <ul class="dropdown-menu p-0 shadow w-100" style="max-height:250px; overflow-y:auto;">
+                                    ${htmlMeses}
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-primary w-100" onclick="window.carregarDadosTelaB1(1)">
+                                <i class="fas fa-search"></i> Buscar
                             </button>
                         </div>
                     </div>
                 </div>
-            </div>
-        `;
-    }
+            </div>`;
 
-    // 2. AQUI CONTINUA O CÓDIGO DA TABELA QUE JÁ EXISTIA...
-    injetarEstilosMultiselect();
-    const tabelaContainer = document.getElementById('tabela-container-global');
-    
-    if(!tabelaContainer) return;
-    
-    // Colunas para Exportação
-    const cols = [
-        {data:'no_cidadao', title:'NOME'}, 
-        {data:'dt_nascimento', title:'NASCIMENTO'},
-        {data:'nu_cpf', title:'CPF'}, 
-        {data:'nu_cns', title:'CNS'},
-        {data:'dt_ultima_consulta', title:'DATA 1ª CONSULTA'},
-        {data:'status', title:'SITUAÇÃO'}
-    ];
-    
-    const callExport = `baixarRelatorioCompleto('b1', 'b1', ${JSON.stringify(cols).replace(/"/g, "'")}, 'B1_Primeira_Consulta.csv')`;
-
-    // Abas e Tabela
-    tabelaContainer.innerHTML = `
-        <nav class="tab-nav">
-            <button class="tab-btn active" data-tab="b1-lista">Lista Nominal</button>
-            <button class="tab-btn" data-tab="b1-percentual">Percentual</button>
-        </nav>
-        <div class="tab-content-wrapper">
-            <div id="tab-content-b1-lista" class="tab-content active">
-                <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
-                    <button id="btn-export-b1" onclick="${callExport}" style="background-color:#2e7d32; color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; display:inline-flex; align-items:center; gap:5px;">
-                        <i class="fas fa-file-csv"></i> Exportar CSV
-                    </button>
-                </div>
-                <div id="container-lista-b1"><div class="loading-clean"><i class="fas fa-chevron-up"></i> Selecione os filtros.</div></div>
-                <div id="paginacao-b1" style="margin-top:20px; display:flex; justify-content:center; gap:10px;"></div>
-            </div>
-            
-            <div id="tab-content-b1-percentual" class="tab-content">
-                <div id="container-ranking-b1" style="padding:20px;"></div>
-                <div id="legenda-b1" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px;">
-                    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-                        <div style="flex: 1; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; background: #fff;">
-                            <h5 style="color: #5e35b1; margin-bottom: 20px;">Pontuação</h5>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 15px; font-size: 0.8rem;">
-                                <div style="border-left: 4px solid #e65100; padding-left: 10px;">Regular<br><b>0 a 25</b></div>
-                                <div style="border-left: 4px solid #fbc02d; padding-left: 10px;">Suficiente<br><b>> 25 a 50</b></div>
-                                <div style="border-left: 4px solid #2e7d32; padding-left: 10px;">Bom<br><b>> 50 a 75</b></div>
-                                <div style="border-left: 4px solid #4a148c; padding-left: 10px;">Ótimo<br><b>> 75 a 100</b></div>
-                            </div>
-                        </div>
-                        <div style="flex: 1; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; background: #fff;">
-                            <p><span style="background:#5e35b1; color:white; padding:2px;">NM</span> Realizaram 1ª Consulta</p>
-                            <p><span style="background:#005aaa; color:white; padding:2px;">DN</span> População Cadastrada</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>`;
-    
-    // Configurações Finais
-    if(typeof configurarAbas === 'function') configurarAbas(tabelaContainer, 'b1', carregarRankingB1);
-    if(typeof preencherFiltroEquipes === 'function') preencherFiltroEquipes('sel-equipe-b1', 'sel-microarea-b1');
-    
-    const selectEquipe = document.getElementById('sel-equipe-b1');
-    if (selectEquipe) {
-        selectEquipe.addEventListener('change', (e) => {
-            if(typeof preencherFiltroMicroareas === 'function') preencherFiltroMicroareas(e.target.value, 'sel-microarea-b1');
+        // Eventos
+        document.querySelectorAll('.check-mes-b1').forEach(chk => {
+            chk.addEventListener('change', () => {
+                const n = document.querySelectorAll('.check-mes-b1:checked').length;
+                const txt = document.getElementById('txt-meses-b1');
+                if(txt) txt.innerText = n > 0 ? `${n} selecionado(s)` : 'Selecione os meses...';
+            });
         });
-    }
-    carregarDadosTelaB1(1);
-}
 
-// 2. BUSCA DE DADOS (B1)
+        // Conecta à API de Equipes (Existente)
+        if (typeof window.preencherFiltroEquipes === 'function') {
+            window.preencherFiltroEquipes('filtro-equipe-b1', 'filtro-microarea-b1');
+            const sel = document.getElementById('filtro-equipe-b1');
+            if(sel) {
+                sel.addEventListener('change', function() {
+                    if (typeof window.preencherFiltroMicroareas === 'function') {
+                        window.preencherFiltroMicroareas(this.value, 'filtro-microarea-b1');
+                    }
+                });
+            }
+        }
+    }
+
+    if (tabelaContainer) {
+        const cols = [
+            {data:'no_cidadao', title:'NOME'}, {data:'dt_nascimento', title:'NASCIMENTO'},
+            {data:'nu_cpf', title:'CPF'}, {data:'dt_ultima_consulta', title:'1ª CONSULTA'}, 
+            {data:'status', title:'SITUAÇÃO'}
+        ];
+        const callExport = `baixarRelatorioCompleto('b1', 'b1', ${JSON.stringify(cols).replace(/"/g, "'")}, 'B1.csv')`;
+
+        tabelaContainer.innerHTML = `
+            <nav class="tab-nav"><button class="tab-btn active" data-tab="b1-lista">Lista Nominal</button><button class="tab-btn" data-tab="b1-percentual">Percentual</button></nav>
+            <div class="tab-content-wrapper">
+                <div id="tab-content-b1-lista" class="tab-content active">
+                    <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
+                        <button onclick="${callExport}" class="btn-export-csv-dinamico" style="background-color:#2e7d32; color:white; border:none; padding:8px 15px; border-radius:4px;"><i class="fas fa-file-csv"></i> Exportar CSV</button>
+                    </div>
+                    <div id="container-lista-b1"><div class="loading-clean"><i class="fas fa-filter"></i> Selecione Equipe e Meses para buscar.</div></div>
+                    <div id="paginacao-b1" style="margin-top:20px; display:flex; justify-content:center; gap:10px;"></div>
+                </div>
+                <div id="tab-content-b1-percentual" class="tab-content">
+                    <div id="container-ranking-b1" style="padding:20px;"></div>
+                </div>
+            </div>`;
+            
+        if(typeof configurarAbas === 'function') configurarAbas(tabelaContainer, 'b1', carregarRankingB1);
+    }
+};
+
+// =================================================================
+// 2. BUSCA DE DADOS B1 (Com Validação)
+// =================================================================
 window.carregarDadosTelaB1 = function(pagina = 1) {
     const container = document.getElementById('container-lista-b1');
     const paginacao = document.getElementById('paginacao-b1');
-    if(container) container.innerHTML = '<div style="text-align:center; padding:30px;"><div class="spinner-border text-primary"></div><p>Buscando dados de Saúde Bucal...</p></div>';
+    
+    if(container) container.innerHTML = '<div style="text-align:center; padding:30px;"><div class="spinner-border text-primary"></div><p>Buscando dados...</p></div>';
     if(paginacao) paginacao.innerHTML = '';
 
     const equipe = document.getElementById('filtro-equipe-b1')?.value || '';
     const microarea = document.getElementById('filtro-microarea-b1')?.value || '';
     
-    let competencia = '';
-    const checks = document.querySelectorAll('#dropdown-options-b1 input:checked');
-    if (checks.length > 0) competencia = Array.from(checks).map(c => c.value).join(',');
+    // Captura múltiplos meses
+    const meses = Array.from(document.querySelectorAll('.check-mes-b1:checked')).map(c => c.value);
+    const competencia = meses.join(',');
+
+    console.log("🔍 DEBUG B1 - Enviando para API:", { equipe, microarea, competencia, pagina });
+
+    if (!competencia) {
+        if(container) container.innerHTML = '<div class="alert alert-warning text-center">⚠️ Por favor, selecione ao menos um mês (competência).</div>';
+        return;
+    }
 
     const token = localStorage.getItem('token');
     const params = new URLSearchParams({ equipe, microarea, competencia, pagina });
 
-    // ATENÇÃO: Rota /indicadores/b1 precisa existir no backend
     fetch(`/api/indicadores/b1?${params.toString()}`, { headers: { 'Authorization': `Bearer ${token}` } })
     .then(res => res.json())
     .then(res => {
         if(!container) return;
         container.innerHTML = '';
-        if (!res.data || res.data.length === 0) { container.innerHTML = '<div style="padding:40px; text-align:center;">Nenhum registro encontrado.</div>'; return; }
+        
+        if (!res.data || res.data.length === 0) {
+            container.innerHTML = '<div style="padding:40px; text-align:center;">Nenhum registro encontrado.</div>';
+            return;
+        }
 
         const colunas = [
             { data: 'no_cidadao', title: 'NOME', width: '35%' },
@@ -2126,35 +2152,47 @@ window.carregarDadosTelaB1 = function(pagina = 1) {
             { data: 'status', title: 'SITUAÇÃO' }
         ];
 
+        // Usa a tabela genérica que já funciona para os outros
         if(typeof construirTabelaAzul === 'function') construirTabelaAzul(res.data, colunas, container);
         else construirTabela(res.data, colunas, container);
         
         if(typeof construirPaginacao === 'function') construirPaginacao('indicadores/b1', res.pagination, { equipe, microarea, competencia }, paginacao);
     })
     .catch(err => {
-        if(container) container.innerHTML = `<div class="alert alert-danger">Erro: ${err.message}</div>`;
+        if(container) container.innerHTML = `<div class="alert alert-danger">Erro ao buscar: ${err.message}</div>`;
     });
 };
 
-// 3. RANKING (B1)
-function carregarRankingB1() {
+// =================================================================
+// 3. RANKING B1 (Correção do Erro ReferenceError)
+// =================================================================
+window.carregarRankingB1 = function() {
     const container = document.getElementById('container-ranking-b1');
     if(!container) return;
-    container.innerHTML = 'Calculando...';
     
-    // ATENÇÃO: Rota /ranking-b1 precisa existir no backend
-    fetch('/api/indicadores/ranking-b1', { headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } })
+    container.innerHTML = `
+        <div style="text-align:center; padding:40px;">
+            <div class="spinner-border text-primary"></div>
+            <p>Calculando ranking...</p>
+        </div>`;
+
+    // Usa a tabela genérica para evitar erros
+    const token = localStorage.getItem('token');
+    fetch('/api/indicadores/ranking-b1', { headers: { 'Authorization': `Bearer ${token}` } })
     .then(res => res.json())
     .then(data => {
-        // Usa função genérica para desenhar tabela de ranking
+        // Se a função genérica existir, usa ela. Se não, mostra mensagem simples.
         if(typeof construirTabelaRankingGenerica === 'function') {
-            construirTabelaRankingGenerica(data, container, [], 75, 25);
+            construirTabelaRankingGenerica(data, container, ['dt_ultima_consulta'], 100, 0);
         } else {
-            container.innerHTML = 'Erro: Função de tabela não encontrada.';
+            container.innerHTML = '<div class="alert alert-warning">Tabela de ranking indisponível no momento.</div>';
         }
     })
-    .catch(err => container.innerHTML = 'Erro ao carregar ranking.');
-}
+    .catch(err => {
+        console.warn("Ranking B1:", err);
+        container.innerHTML = '<div class="alert alert-info">Sem dados de ranking para exibir.</div>';
+    });
+};
 
 // ==========================================================
 // MÓDULO C5 - HIPERTENSÃO (INSERIDO CIRURGICAMENTE)
@@ -2914,770 +2952,5 @@ console.log("🔓 Função B1 liberada para o HTML!");
 
 
 
-// =================================================================
-// 🎨 B1: FILTROS (APENAS MESES 2026 e 2025 - SEM QUADRIMESTRES)
-// =================================================================
-window.renderizarFiltrosB1 = function() {
-    console.log("🎨 Gerando lista de meses (2026 e 2025)...");
-    
-    const container = document.getElementById('filtros-container-global');
-    if (!container) return;
-
-    // 1. GERAR A LISTA DE MESES (HTML DINÂMICO)
-    let htmlListaCompetencias = '';
-    
-    // Configuração dos anos e meses
-    const anos = [2026, 2025]; // Ordem: 2026 primeiro, depois 2025
-    const nomesMeses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-
-    anos.forEach(ano => {
-        // Título separador do ano
-        htmlListaCompetencias += `<li class="p-2 border-bottom bg-light ${ano === 2025 ? 'border-top' : ''}"><small class="fw-bold text-muted ps-2">Mensal ${ano}</small></li>`;
-        
-        // Loop reverso (Dezembro -> Janeiro) para o ano aparecer do fim para o começo
-        // Se preferir Janeiro -> Dezembro, troque o loop para: for (let i = 0; i < 12; i++)
-        for (let i = 0; i < 12; i++) { // Fiz ordem Janeiro -> Dezembro (Crescente) para ficar mais fácil de achar
-            
-            // Formata valor: 2025-01, 2025-02...
-            const mesNumero = String(i + 1).padStart(2, '0');
-            const valor = `${ano}-${mesNumero}`;
-            const label = `${nomesMeses[i]}/${ano}`;
-            
-            htmlListaCompetencias += `
-                <li>
-                    <label class="dropdown-item py-2">
-                        <input type="checkbox" class="form-check-input me-2 check-mes" value="${valor}"> 
-                        ${label}
-                    </label>
-                </li>`;
-        }
-    });
-
-    // 2. DESENHAR A TELA
-    container.innerHTML = '';
-    container.classList.remove('hidden');
-    container.style.display = 'block';
-
-    container.innerHTML = `
-        <div class="card mb-3 shadow-sm" style="border-left: 5px solid #0d6efd;">
-            <div class="card-body py-3">
-                <div class="row g-3 align-items-end">
-                    
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold small text-muted">Equipe</label>
-                        <select id="sel-equipe-b1" class="form-select">
-                            <option value="">Todas as Equipes</option>
-                            <option value="1">Equipe 001 - Centro</option>
-                            <option value="2">Equipe 002 - Rural</option>
-                        </select>
-                    </div>
-
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold small text-muted">Microárea</label>
-                        <select id="sel-microarea-b1" class="form-select">
-                            <option value="">Todas</option>
-                        </select>
-                    </div>
-
-                    <div class="col-md-3">
-                        <label class="form-label fw-bold small text-muted">Competências</label>
-                        <div class="dropdown" id="dropdown-meses-container">
-                            
-                            <button class="btn bg-white border w-100 d-flex justify-content-between align-items-center" 
-                                    type="button" 
-                                    id="btnDropdownMeses" 
-                                    data-bs-toggle="dropdown" 
-                                    data-bs-auto-close="outside" 
-                                    aria-expanded="false"
-                                    style="border-color: #ced4da; color: #495057; height: 38px;">
-                                <span id="texto-meses-selecionados" style="font-weight: normal; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">Selecione...</span>
-                                <i class="fas fa-chevron-down" style="font-size: 10px; opacity: 0.7;"></i>
-                            </button>
-
-                            <ul class="dropdown-menu p-0 shadow w-100" aria-labelledby="btnDropdownMeses" style="max-height: 250px; overflow-y: auto;">
-                                ${htmlListaCompetencias}
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div class="col-md-2">
-                        <button class="btn btn-primary w-100" onclick="executarBuscaB1()">
-                            <i class="fas fa-search"></i> Buscar
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-
-    // 3. REAPLICAR LÓGICA DE EVENTOS (Contagem de selecionados)
-    setTimeout(() => {
-        const checkboxes = document.querySelectorAll('.check-mes');
-        const textoLabel = document.getElementById('texto-meses-selecionados');
-
-        const atualizarTexto = () => {
-            const marcados = document.querySelectorAll('.check-mes:checked');
-            if (marcados.length === 0) {
-                textoLabel.textContent = "Selecione...";
-            } else if (marcados.length === 1) {
-                textoLabel.textContent = marcados[0].parentNode.textContent.trim();
-            } else {
-                textoLabel.textContent = `${marcados.length} meses selecionados`;
-            }
-        };
-
-        checkboxes.forEach(chk => {
-            chk.addEventListener('change', atualizarTexto);
-        });
-    }, 500);
-};
-
-
-
-// =================================================================
-
-
-
-// 🧠 DADOS SIMULADOS (FIXOS PARA TESTE)
-
-
-
-// =================================================================
-
-
-
-const dadosSimuladosB1 = {
-
-
-
-    "1": { nome: "Equipe 001 - Centro", microareas: ["01", "02", "03", "04"] },
-
-
-
-    "2": { nome: "Equipe 002 - Rural", microareas: ["10", "11", "12"] },
-
-
-
-    "3": { nome: "Equipe 003 - Nova Esperança", microareas: ["20", "21", "25"] }
-
-
-
-};
-
-
-
-
-
-
-
-// =================================================================
-
-
-
-// 🎨 1. RENDERIZAR E ATIVAR FILTROS
-
-
-
-// =================================================================
-
-
-
-window.renderizarFiltrosB1 = function() {
-
-
-
-    console.log("🎨 Iniciando filtros B1...");
-
-
-
-    
-
-
-
-    // Aguarda o container existir
-
-
-
-    setTimeout(function() {
-
-
-
-        const container = document.getElementById('filtros-container-global');
-
-
-
-        if (!container) return;
-
-
-
-
-
-
-
-        // A. Gerar Lista de Meses (2025 e 2026)
-
-
-
-        let htmlListaCompetencias = '';
-
-
-
-        const anos = [2026, 2025];
-
-
-
-        const nomesMeses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-
-
-
-
-
-
-
-        anos.forEach(ano => {
-
-
-
-            htmlListaCompetencias += `<li class="p-2 border-bottom bg-light ${ano === 2025 ? 'border-top' : ''}"><small class="fw-bold text-muted ps-2">Mensal ${ano}</small></li>`;
-
-
-
-            for (let i = 0; i < 12; i++) {
-
-
-
-                const mesNumero = String(i + 1).padStart(2, '0');
-
-
-
-                const valor = `${ano}-${mesNumero}`;
-
-
-
-                const label = `${nomesMeses[i]}/${ano}`;
-
-
-
-                htmlListaCompetencias += `<li><label class="dropdown-item py-2"><input type="checkbox" class="form-check-input me-2 check-mes" value="${valor}"> ${label}</label></li>`;
-
-
-
-            }
-
-
-
-        });
-
-
-
-
-
-
-
-        // B. Injetar HTML (Com eventos onchange)
-
-
-
-        container.innerHTML = '';
-
-
-
-        container.classList.remove('hidden');
-
-
-
-        container.style.display = 'block';
-
-
-
-
-
-
-
-        container.innerHTML = `
-
-
-
-            <div class="card mb-3 shadow-sm" style="border-left: 5px solid #0d6efd;">
-
-
-
-                <div class="card-body py-3">
-
-
-
-                    <div class="row g-3 align-items-end">
-
-
-
-                        <div class="col-md-4">
-
-
-
-                            <label class="form-label fw-bold small text-muted">Equipe</label>
-
-
-
-                            <select id="sel-equipe-b1" class="form-select" onchange="window.atualizarMicroareasB1()">
-
-
-
-                                <option value="">Carregando...</option>
-
-
-
-                            </select>
-
-
-
-                        </div>
-
-
-
-                        <div class="col-md-3">
-
-
-
-                            <label class="form-label fw-bold small text-muted">Microárea</label>
-
-
-
-                            <select id="sel-microarea-b1" class="form-select">
-
-
-
-                                <option value="">Selecione uma equipe</option>
-
-
-
-                            </select>
-
-
-
-                        </div>
-
-
-
-                        <div class="col-md-3">
-
-
-
-                            <label class="form-label fw-bold small text-muted">Competências</label>
-
-
-
-                            <div class="dropdown">
-
-
-
-                                <button class="btn bg-white border w-100 d-flex justify-content-between align-items-center" type="button" id="btnDropdownMeses" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" style="border-color: #ced4da; height: 38px;">
-
-
-
-                                    <span id="texto-meses-selecionados">Selecione...</span>
-
-
-
-                                    <i class="fas fa-chevron-down" style="font-size: 10px;"></i>
-
-
-
-                                </button>
-
-
-
-                                <ul class="dropdown-menu p-0 shadow w-100" style="max-height: 250px; overflow-y: auto;">
-
-
-
-                                    ${htmlListaCompetencias}
-
-
-
-                                </ul>
-
-
-
-                            </div>
-
-
-
-                        </div>
-
-
-
-                        <div class="col-md-2">
-
-
-
-                            <button class="btn btn-primary w-100" onclick="window.executarBuscaB1()"><i class="fas fa-search"></i> Buscar</button>
-
-
-
-                        </div>
-
-
-
-                    </div>
-
-
-
-                </div>
-
-
-
-            </div>
-
-
-
-        `;
-
-
-
-
-
-
-
-        // C. Configurar Eventos e Carregar Dados Iniciais
-
-
-
-        configurarEventosCheckbox();
-
-
-
-        window.carregarOpcoesFiltros();
-
-
-
-
-
-
-
-    }, 500);
-
-
-
-};
-
-
-
-
-
-
-
-// =================================================================
-
-
-
-// ⚙️ 2. FUNÇÕES AUXILIARES (Lógica dos Filtros)
-
-
-
-// =================================================================
-
-
-
-
-
-
-
-// Atualiza o texto do botão de meses
-
-
-
-function configurarEventosCheckbox() {
-
-
-
-    const checkboxes = document.querySelectorAll('.check-mes');
-
-
-
-    const texto = document.getElementById('texto-meses-selecionados');
-
-
-
-    checkboxes.forEach(c => c.addEventListener('change', () => {
-
-
-
-        const qtd = document.querySelectorAll('.check-mes:checked').length;
-
-
-
-        texto.textContent = qtd === 0 ? "Selecione..." : (qtd === 1 ? document.querySelector('.check-mes:checked').parentNode.textContent.trim() : `${qtd} meses selecionados`);
-
-
-
-    }));
-
-
-
-}
-
-
-
-
-
-
-
-// Preenche o Select de Equipes
-
-
-
-window.carregarOpcoesFiltros = function() {
-
-
-
-    const selEquipe = document.getElementById('sel-equipe-b1');
-
-
-
-    if(!selEquipe) return;
-
-
-
-    
-
-
-
-    selEquipe.innerHTML = '<option value="">Todas as Equipes</option>';
-
-
-
-    for (const [id, dados] of Object.entries(dadosSimuladosB1)) {
-
-
-
-        const option = document.createElement('option');
-
-
-
-        option.value = id;
-
-
-
-        option.textContent = dados.nome;
-
-
-
-        selEquipe.appendChild(option);
-
-
-
-    }
-
-
-
-};
-
-
-
-
-
-
-
-// Atualiza o Select de Microáreas baseado na Equipe
-
-
-
-window.atualizarMicroareasB1 = function() {
-
-
-
-    const idEquipe = document.getElementById('sel-equipe-b1').value;
-
-
-
-    const selMicro = document.getElementById('sel-microarea-b1');
-
-
-
-    
-
-
-
-    selMicro.innerHTML = '<option value="">Todas</option>';
-
-
-
-
-
-
-
-    if (idEquipe && dadosSimuladosB1[idEquipe]) {
-
-
-
-        const listaMas = dadosSimuladosB1[idEquipe].microareas;
-
-
-
-        listaMas.forEach(ma => {
-
-
-
-            const option = document.createElement('option');
-
-
-
-            option.value = ma;
-
-
-
-            option.textContent = `MA - ${ma}`;
-
-
-
-            selMicro.appendChild(option);
-
-
-
-        });
-
-
-
-    } else {
-
-
-
-        if(!idEquipe) selMicro.innerHTML = '<option value="">Selecione uma equipe</option>';
-
-
-
-    }
-
-
-
-};
-
-
-
-
-
-
-
-// =================================================================
-
-
-
-// 🔎 3. FUNÇÃO DE BUSCA
-
-
-
-// =================================================================
-
-
-
-window.executarBuscaB1 = function() {
-
-
-
-    const equipeId = document.getElementById('sel-equipe-b1').value;
-
-
-
-    const microarea = document.getElementById('sel-microarea-b1').value;
-
-
-
-    
-
-
-
-    const mesesSelecionados = [];
-
-
-
-    document.querySelectorAll('.check-mes:checked').forEach(chk => mesesSelecionados.push(chk.value));
-
-
-
-
-
-
-
-    if (mesesSelecionados.length === 0) {
-
-
-
-        alert("⚠️ Selecione pelo menos um mês.");
-
-
-
-        return;
-
-
-
-    }
-
-
-
-
-
-
-
-    // Feedback visual
-
-
-
-    const btn = document.querySelector('#filtros-container-global button.btn-primary');
-
-
-
-    const textoOriginal = btn.innerHTML;
-
-
-
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
-
-
-
-    
-
-
-
-    // Simula envio
-
-
-
-    console.log("🚀 DADOS PARA API:", { equipeId, microarea, mesesSelecionados });
-
-
-
-    
-
-
-
-    setTimeout(() => {
-
-
-
-        alert(`✅ Busca Enviada!\nEquipe: ${equipeId || 'Todas'}\nMicroárea: ${microarea || 'Todas'}\nMeses: ${mesesSelecionados.join(', ')}`);
-
-
-
-        btn.innerHTML = textoOriginal;
-
-
-
-        
-
-
-
-        // AQUI VOCÊ CONECTARÁ SUA TABELA REAL:
-
-
-
-        // carregarTabelaB1(equipeId, microarea, mesesSelecionados);
-
-
-
-    }, 1000);
-
-
-
-};
 
 
