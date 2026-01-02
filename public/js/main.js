@@ -1312,45 +1312,48 @@ function carregarRankingInfantil() {
         // SUBSTITUIR AS FUNÇÕES EXISTENTES NO FINAL DO ARQUIVO POR ESTAS:
         // =================================================================
     
-        async function preencherFiltroEquipes(idSelectEquipe, idSelectMicroarea) {
-            const select = document.getElementById(idSelectEquipe);
-            if (!select) return;
-            
-            select.innerHTML = '<option value="">Carregando...</option>';
-            
-            try {
-                const token = localStorage.getItem('token');
-                if (!token) { window.location.href = '/login.html'; return; }
+        window.preencherFiltroEquipes = async function(idSelectEquipe, idSelectMicroarea, filtroTexto = null) {
+    const select = document.getElementById(idSelectEquipe);
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">Carregando...</option>';
+    
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) { window.location.href = '/login.html'; return; }
+
+        const response = await fetch('/api/equipes', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.status === 401) { localStorage.clear(); window.location.href = '/login.html'; return; }
+        if (!response.ok) throw new Error('Erro ao buscar equipes');
         
-                const response = await fetch('/api/equipes', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+        const equipes = await response.json();
         
-                // SE O TOKEN VENCEU, SAI DO SISTEMA
-                if (response.status === 401 || response.status === 403) {
-                    localStorage.clear();
-                    window.location.href = '/login.html';
-                    return;
-                }
+        select.innerHTML = '<option value="">Selecione a Equipe</option>';
         
-                if (!response.ok) throw new Error('Erro ao buscar equipes');
+        if (Array.isArray(equipes)) {
+            equipes.forEach(equipe => {
+                const nomeEquipe = equipe.no_equipe.toUpperCase();
                 
-                const equipes = await response.json();
-                
-                select.innerHTML = '<option value="">Todas as Equipes</option>';
-                if (Array.isArray(equipes)) {
-                    equipes.forEach(equipe => {
-                        const option = document.createElement('option');
-                        option.value = equipe.nu_ine;
-                        option.textContent = equipe.no_equipe;
-                        select.appendChild(option);
-                    });
+                // LÓGICA DE FILTRAGEM:
+                // Se o filtroTexto foi passado (ex: "ESB"), só mostra equipes com esse nome
+                if (filtroTexto && !nomeEquipe.includes(filtroTexto.toUpperCase())) {
+                    return; 
                 }
-            } catch (error) { 
-                console.error('Erro equipes:', error);
-                select.innerHTML = '<option value="">Erro ao carregar</option>';
-            }
+
+                const option = document.createElement('option');
+                option.value = equipe.nu_ine;
+                option.textContent = equipe.no_equipe;
+                select.appendChild(option);
+            });
         }
+    } catch (error) { 
+        console.error('Erro equipes:', error);
+        select.innerHTML = '<option value="">Erro ao carregar</option>';
+    }
+};
     
         // =================================================================
 // FUNÇÃO CORRIGIDA: Preencher Microáreas e Destravar Campo
@@ -1413,7 +1416,7 @@ window.preencherFiltroMicroareas = async function(ineEquipe, idSelectMicroarea) 
 };
     
         // Garante que as funções estejam acessíveis no escopo global
-        window.preencherFiltroEquipes = preencherFiltroEquipes;
+
         window.preencherFiltroMicroareas = preencherFiltroMicroareas;
     
                 // Torna as funções acessíveis globalmente
@@ -1999,17 +2002,21 @@ window.construirPaginacao = function(api, pagination, filtros, container) {
 // =================================================================
 // 1. LAYOUT B1 - LIMPO E MANUAL (Sem Auto-Seleção)
 // =================================================================
+// =================================================================
+// 1. LAYOUT B1 - VERSÃO FINAL (Filtro Apenas eSB)
+// =================================================================
 window.carregarLayoutB1 = function() {
-    console.log("🚀 B1: Carregando layout (Modo Manual)...");
+    console.log("🚀 Carregando Layout B1 (Filtro eSB Ativo)...");
 
     const filtrosContainer = document.getElementById('filtros-container-global');
     const tabelaContainer = document.getElementById('tabela-container-global');
 
+    // --- A. RENDERIZAR FILTROS ---
     if (filtrosContainer) {
         filtrosContainer.style.display = 'block';
         filtrosContainer.classList.remove('hidden');
 
-        // Gera HTML dos Meses (Sem marcar nada)
+        // HTML dos Meses
         let htmlMeses = '';
         [2026, 2025].forEach(ano => {
             htmlMeses += `<li class="p-2 border-bottom bg-light"><small class="fw-bold text-muted ps-2">ANO ${ano}</small></li>`;
@@ -2019,12 +2026,13 @@ window.carregarLayoutB1 = function() {
             });
         });
 
+        // HTML da Tela
         filtrosContainer.innerHTML = `
             <div class="card mb-3 shadow-sm" style="border-left: 5px solid #0d6efd;">
                 <div class="card-body py-3">
                     <div class="row g-3 align-items-end">
                         <div class="col-md-4">
-                            <label class="form-label fw-bold small text-muted">Equipe (eSF Recomendado)</label>
+                            <label class="form-label fw-bold small text-muted">Equipe de Saúde Bucal (eSB)</label>
                             <select id="filtro-equipe-b1" class="form-select">
                                 <option value="">Carregando...</option>
                             </select>
@@ -2039,24 +2047,21 @@ window.carregarLayoutB1 = function() {
                             <label class="form-label fw-bold small text-muted">Competências</label>
                             <div class="dropdown">
                                 <button class="btn bg-white border w-100 d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside">
-                                    <span id="txt-meses-b1">Selecione os meses...</span> 
-                                    <i class="fas fa-chevron-down small"></i>
+                                    <span id="txt-meses-b1">Selecione os meses...</span> <i class="fas fa-chevron-down small"></i>
                                 </button>
-                                <ul class="dropdown-menu p-0 shadow w-100" style="max-height:250px; overflow-y:auto;">
-                                    ${htmlMeses}
-                                </ul>
+                                <ul class="dropdown-menu p-0 shadow w-100" style="max-height:250px; overflow-y:auto;">${htmlMeses}</ul>
                             </div>
                         </div>
                         <div class="col-md-2">
-                            <button class="btn btn-primary w-100" onclick="window.carregarDadosTelaB1(1)">
-                                <i class="fas fa-search"></i> Buscar
-                            </button>
+                            <button class="btn btn-primary w-100" onclick="window.carregarDadosTelaB1(1)"><i class="fas fa-search"></i> Buscar</button>
                         </div>
                     </div>
                 </div>
             </div>`;
 
-        // Eventos
+        // --- B. APLICAR LÓGICA ---
+        
+        // 1. Contador de Meses
         document.querySelectorAll('.check-mes-b1').forEach(chk => {
             chk.addEventListener('change', () => {
                 const n = document.querySelectorAll('.check-mes-b1:checked').length;
@@ -2065,9 +2070,12 @@ window.carregarLayoutB1 = function() {
             });
         });
 
-        // Conecta à API de Equipes (Existente)
+        // 2. Preencher Equipes (COM FILTRO 'ESB')
+        // Passamos 'ESB' para filtrar a lista visualmente
         if (typeof window.preencherFiltroEquipes === 'function') {
-            window.preencherFiltroEquipes('filtro-equipe-b1', 'filtro-microarea-b1');
+            window.preencherFiltroEquipes('filtro-equipe-b1', 'filtro-microarea-b1', 'ESB');
+            
+            // Evento de mudança para carregar microáreas
             const sel = document.getElementById('filtro-equipe-b1');
             if(sel) {
                 sel.addEventListener('change', function() {
@@ -2079,7 +2087,9 @@ window.carregarLayoutB1 = function() {
         }
     }
 
+    // --- C. RENDERIZAR TABELA ---
     if (tabelaContainer) {
+        // ... (Mantém a tabela padrão) ...
         const cols = [
             {data:'no_cidadao', title:'NOME'}, {data:'dt_nascimento', title:'NASCIMENTO'},
             {data:'nu_cpf', title:'CPF'}, {data:'dt_ultima_consulta', title:'1ª CONSULTA'}, 
@@ -2094,7 +2104,7 @@ window.carregarLayoutB1 = function() {
                     <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
                         <button onclick="${callExport}" class="btn-export-csv-dinamico" style="background-color:#2e7d32; color:white; border:none; padding:8px 15px; border-radius:4px;"><i class="fas fa-file-csv"></i> Exportar CSV</button>
                     </div>
-                    <div id="container-lista-b1"><div class="loading-clean"><i class="fas fa-filter"></i> Selecione Equipe e Meses para buscar.</div></div>
+                    <div id="container-lista-b1"><div class="loading-clean"><i class="fas fa-filter"></i> Selecione uma Equipe de Saúde Bucal e o Período.</div></div>
                     <div id="paginacao-b1" style="margin-top:20px; display:flex; justify-content:center; gap:10px;"></div>
                 </div>
                 <div id="tab-content-b1-percentual" class="tab-content">
@@ -2164,7 +2174,7 @@ window.carregarDadosTelaB1 = function(pagina = 1) {
 };
 
 // =================================================================
-// 3. RANKING B1 (Correção do Erro ReferenceError)
+// 3. RANKING B1 - VERSÃO ROBUSTA (Cruzamento Equipes vs Ranking)
 // =================================================================
 window.carregarRankingB1 = function() {
     const container = document.getElementById('container-ranking-b1');
@@ -2173,24 +2183,70 @@ window.carregarRankingB1 = function() {
     container.innerHTML = `
         <div style="text-align:center; padding:40px;">
             <div class="spinner-border text-primary"></div>
-            <p>Calculando ranking...</p>
+            <p>Consolidando dados das equipes eSB...</p>
         </div>`;
 
-    // Usa a tabela genérica para evitar erros
     const token = localStorage.getItem('token');
-    fetch('/api/indicadores/ranking-b1', { headers: { 'Authorization': `Bearer ${token}` } })
-    .then(res => res.json())
-    .then(data => {
-        // Se a função genérica existir, usa ela. Se não, mostra mensagem simples.
+    
+    // Dispara as duas requisições em paralelo
+    Promise.all([
+        fetch('/api/equipes', { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json()),
+        fetch('/api/indicadores/ranking-b1?limit=1000', { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json())
+    ])
+    .then(([todasEquipes, dadosRanking]) => {
+        
+        // 1. Filtra APENAS as eSBs da lista oficial de equipes
+        const listaESB = todasEquipes.filter(eq => 
+            eq.no_equipe && eq.no_equipe.toUpperCase().includes('ESB')
+        );
+
+        console.log(`📊 Consolidação B1: ${listaESB.length} Equipes eSB encontradas no cadastro.`);
+
+        // 2. Cruza os dados (Left Join: Equipes -> Ranking)
+        const tabelaFinal = listaESB.map(equipeRef => {
+            // Tenta achar essa equipe nos dados do ranking (pelo nome ou INE)
+            // Normaliza nomes para evitar erros de espaço/maiúscula
+            const dadosEncontrados = dadosRanking.find(r => {
+                const nomeRank = (r.equipe || r.no_equipe || '').trim().toUpperCase();
+                const nomeRef = equipeRef.no_equipe.trim().toUpperCase();
+                return nomeRank === nomeRef; // Match por nome exato
+            });
+
+            if (dadosEncontrados) {
+                // Se achou, usa os dados reais
+                return {
+                    equipe: equipeRef.no_equipe,
+                    dt_ultima_consulta: dadosEncontrados.dt_ultima_consulta || 0, // Exemplo de coluna
+                    nm: dadosEncontrados.nm || 0,
+                    dn: dadosEncontrados.dn || 0,
+                    pontuacao: dadosEncontrados.percentual || dadosEncontrados.pontuacao || 0
+                };
+            } else {
+                // Se não achou (equipe sem produção), cria linha zerada
+                return {
+                    equipe: equipeRef.no_equipe,
+                    dt_ultima_consulta: 0,
+                    nm: 0,
+                    dn: 0,
+                    pontuacao: 0
+                };
+            }
+        });
+
+        // 3. Renderiza a tabela
         if(typeof construirTabelaRankingGenerica === 'function') {
-            construirTabelaRankingGenerica(data, container, ['dt_ultima_consulta'], 100, 0);
+            // Ordena: Quem tem nota primeiro, depois alfabético
+            tabelaFinal.sort((a, b) => b.pontuacao - a.pontuacao);
+            
+            // Renderiza (Ajuste as colunas 'chavesIndicadores' conforme seu dado real do B1)
+            construirTabelaRankingGenerica(tabelaFinal, container, [], 60, 40);
         } else {
-            container.innerHTML = '<div class="alert alert-warning">Tabela de ranking indisponível no momento.</div>';
+            container.innerHTML = '<div class="alert alert-warning">Erro visual na tabela.</div>';
         }
     })
     .catch(err => {
-        console.warn("Ranking B1:", err);
-        container.innerHTML = '<div class="alert alert-info">Sem dados de ranking para exibir.</div>';
+        console.error("Erro Crítico B1:", err);
+        container.innerHTML = `<div class="alert alert-danger">Falha ao cruzar dados das equipes: ${err.message}</div>`;
     });
 };
 
