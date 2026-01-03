@@ -2006,6 +2006,9 @@ window.carregarDadosTelaB1 = function(pagina = 1) {
 // =================================================================
 // 3. RANKING B1 - VERSÃO ROBUSTA (Cruzamento Equipes vs Ranking)
 // =================================================================
+// =================================================================
+// 3. RANKING B1 - VERSÃO FINAL (Cores Ajustadas e Filtro de Data)
+// =================================================================
 window.carregarRankingB1 = function() {
     const container = document.getElementById('container-ranking-b1');
     if(!container) return;
@@ -2017,68 +2020,182 @@ window.carregarRankingB1 = function() {
         </div>`;
 
     const token = localStorage.getItem('token');
-    
-    // Dispara as duas requisições em paralelo
+
+    // 1. CAPTURA AS COMPETÊNCIAS SELECIONADAS NA TELA
+    const checks = document.querySelectorAll('#dropdown-options-b1 input:checked'); // Note: ID pode ser b1 ou o genérico usado no layout
+    // Fallback: Se não achar com ID b1, tenta pegar do layout genérico se estiver usando o mesmo ID
+    const competencia = Array.from(document.querySelectorAll('.check-mes-b1:checked')).map(c => c.value).join(',');
+
+    // 2. Dispara requisições (Passando a competência para o ranking!)
     Promise.all([
         fetch('/api/equipes', { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json()),
-        fetch('/api/indicadores/ranking-b1?limit=1000', { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json())
+        // Adiciona a competência na URL
+        fetch(`/api/indicadores/ranking-b1?limit=1000&competencia=${competencia}`, { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json())
     ])
     .then(([todasEquipes, dadosRanking]) => {
         
-        // 1. Filtra APENAS as eSBs da lista oficial de equipes
+        // Filtra APENAS as eSBs
         const listaESB = todasEquipes.filter(eq => 
             eq.no_equipe && eq.no_equipe.toUpperCase().includes('ESB')
         );
 
-        console.log(`📊 Consolidação B1: ${listaESB.length} Equipes eSB encontradas no cadastro.`);
+        console.log(`📊 B1 (Periodo: ${competencia || 'Ano Atual'}): ${listaESB.length} eSBs.`);
 
-        // 2. Cruza os dados (Left Join: Equipes -> Ranking)
         const tabelaFinal = listaESB.map(equipeRef => {
-            // Tenta achar essa equipe nos dados do ranking (pelo nome ou INE)
-            // Normaliza nomes para evitar erros de espaço/maiúscula
             const dadosEncontrados = dadosRanking.find(r => {
                 const nomeRank = (r.equipe || r.no_equipe || '').trim().toUpperCase();
                 const nomeRef = equipeRef.no_equipe.trim().toUpperCase();
-                return nomeRank === nomeRef; // Match por nome exato
+                return nomeRank === nomeRef;
             });
 
             if (dadosEncontrados) {
-                // Se achou, usa os dados reais
                 return {
                     equipe: equipeRef.no_equipe,
-                    dt_ultima_consulta: dadosEncontrados.dt_ultima_consulta || 0, // Exemplo de coluna
                     nm: dadosEncontrados.nm || 0,
                     dn: dadosEncontrados.dn || 0,
-                    pontuacao: dadosEncontrados.percentual || dadosEncontrados.pontuacao || 0
+                    pontuacao: dadosEncontrados.pontuacao || 0
                 };
             } else {
-                // Se não achou (equipe sem produção), cria linha zerada
-                return {
-                    equipe: equipeRef.no_equipe,
-                    dt_ultima_consulta: 0,
-                    nm: 0,
-                    dn: 0,
-                    pontuacao: 0
-                };
+                return { equipe: equipeRef.no_equipe, nm: 0, dn: 0, pontuacao: 0 };
             }
         });
 
-        // 3. Renderiza a tabela
-        if(typeof construirTabelaRankingGenerica === 'function') {
-            // Ordena: Quem tem nota primeiro, depois alfabético
-            tabelaFinal.sort((a, b) => b.pontuacao - a.pontuacao);
-            
-            // Renderiza (Ajuste as colunas 'chavesIndicadores' conforme seu dado real do B1)
-            construirTabelaRankingGenerica(tabelaFinal, container, [], 60, 40);
-        } else {
-            container.innerHTML = '<div class="alert alert-warning">Erro visual na tabela.</div>';
-        }
+        // Ordena
+        tabelaFinal.sort((a, b) => b.pontuacao - a.pontuacao);
+
+        // 3. RENDERIZA COM CORES ESPECÍFICAS (Meta 5%)
+        // Ótimo > 5% | Bom > 3% | Suficiente > 1% | Regular <= 1%
+        construirTabelaRankingB1(tabelaFinal, container);
     })
     .catch(err => {
-        console.error("Erro Crítico B1:", err);
-        container.innerHTML = `<div class="alert alert-danger">Falha ao cruzar dados das equipes: ${err.message}</div>`;
+        console.error("Erro B1:", err);
+        container.innerHTML = `<div class="alert alert-danger">Erro: ${err.message}</div>`;
     });
 };
+
+// Função Visual Específica para B1 (Design Atualizado com Legenda em Cards)
+function construirTabelaRankingB1(data, container) {
+    if(!container) return;
+    container.innerHTML = '';
+    
+    // 1. Renderiza Tabela
+    const table = document.createElement('table');
+    table.className = 'tabela-ranking';
+    table.style.width = '100%';
+    
+    table.innerHTML = `
+        <thead>
+            <tr>
+                <th style="text-align:left; background:#005aaa; color:#fff; padding:10px;">EQUIPE</th>
+                <th style="background:#005aaa; color:#fff; text-align:center;">NM (1ª Cons)</th>
+                <th style="background:#005aaa; color:#fff; text-align:center;">DN (Total)</th>
+                <th style="background:#005aaa; color:#fff; text-align:center;">COBERTURA (%)</th>
+            </tr>
+        </thead>`;
+
+    const tbody = document.createElement('tbody');
+    data.forEach(row => {
+        const tr = document.createElement('tr');
+        const nota = parseFloat(row.pontuacao || 0);
+        
+        // --- ESCALA DE CORES (Baseada na Imagem: Roxo = Ótimo) ---
+        let corTexto = '#e65100'; // Regular (<= 1) - Laranja
+        let corFundo = '#fff3e0';
+
+        if (nota > 5) {
+            corTexto = '#4a148c'; // Ótimo (> 5) - Roxo
+            corFundo = '#f3e5f5';
+        } else if (nota > 3) {
+            corTexto = '#2e7d32'; // Bom (> 3 e <= 5) - Verde
+            corFundo = '#e8f5e9';
+        } else if (nota > 1) {
+            corTexto = '#f9a825'; // Suficiente (> 1 e <= 3) - Amarelo Escuro
+            corFundo = '#fffde7';
+        } else {
+            corTexto = '#c62828'; // Regular (<= 1) - Vermelho/Laranja Escuro
+            corFundo = '#ffebee';
+        }
+
+        tr.innerHTML = `
+            <td style="text-align:left; padding:10px; font-weight:600; color:#333;">${row.equipe}</td>
+            <td style="text-align:center; color:#005aaa; font-weight:bold;">${row.nm}</td>
+            <td style="text-align:center; color:#555;">${row.dn}</td>
+            <td style="text-align:center;">
+                <span style="display:inline-block; padding:4px 12px; border-radius:15px; font-weight:bold; color:${corTexto}; background-color:${corFundo};">
+                    ${nota.toFixed(2)}%
+                </span>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    container.appendChild(table);
+    
+    // 2. Renderiza Legenda (Novo Layout em Cards)
+    const legendaContainer = document.createElement('div');
+    legendaContainer.style.marginTop = '30px';
+    
+    // Link da Nota Técnica
+    const linkNota = 'https://www.gov.br/saude/pt-br/composicao/saps/publicacoes/fichas-tecnicas/equipe-de-saude-bucal/nota-metodologica-b1-primeira-consulta-programada/view';
+
+    legendaContainer.innerHTML = `
+        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+            
+            <div style="flex: 1; min-width: 300px; border: 1px solid #e0e0e0; border-radius: 12px; padding: 20px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <h5 style="color: #5e35b1; display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: bold;">
+                    <i class="far fa-clock"></i> Pontuação
+                </h5>
+                
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px;">
+                    <div style="border-left: 4px solid #c62828; padding-left: 8px;">
+                        <div style="color: #666; font-size: 0.8em; text-transform: uppercase;">Regular</div>
+                        <div style="font-weight: bold; color: #333;">≤ 1</div>
+                    </div>
+                    <div style="border-left: 4px solid #f9a825; padding-left: 8px;">
+                        <div style="color: #666; font-size: 0.8em; text-transform: uppercase;">Suficiente</div>
+                        <div style="font-weight: bold; color: #333;">> 1 e ≤ 3</div>
+                    </div>
+                    <div style="border-left: 4px solid #2e7d32; padding-left: 8px;">
+                        <div style="color: #666; font-size: 0.8em; text-transform: uppercase;">Bom</div>
+                        <div style="font-weight: bold; color: #333;">> 3 e ≤ 5</div>
+                    </div>
+                    <div style="border-left: 4px solid #4a148c; padding-left: 8px;">
+                        <div style="color: #666; font-size: 0.8em; text-transform: uppercase;">Ótimo</div>
+                        <div style="font-weight: bold; color: #333;">> 5</div>
+                    </div>
+                </div>
+
+                <div style="border-top: 1px solid #eee; padding-top: 15px;">
+                    <a href="${linkNota}" target="_blank" style="text-decoration: none; color: #005aaa; font-size: 0.9em; display: flex; align-items: center; gap: 8px; font-weight: 500;">
+                        <i class="fas fa-external-link-alt"></i> Fonte: Acesse as Fichas Técnicas aqui
+                    </a>
+                </div>
+            </div>
+
+            <div style="flex: 1; min-width: 300px; border: 1px solid #e0e0e0; border-radius: 12px; padding: 20px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <div style="display: flex; gap: 15px; align-items: flex-start; margin-bottom: 20px;">
+                    <div style="background: #4a148c; color: white; padding: 6px 10px; border-radius: 6px; font-weight: bold; font-size: 0.9em;">NM</div>
+                    <i class="fas fa-chart-bar" style="color: #bdbdbd; margin-top: 5px;"></i>
+                    <div style="color: #555; font-size: 0.9em; line-height: 1.5;">
+                        [cite_start]Nº total de pessoas com <strong>primeira consulta odontológica programática</strong> realizadas pela eSB[cite: 23].
+                    </div>
+                </div>
+                
+                <div style="border-top: 1px solid #eee; margin: 15px 0;"></div>
+
+                <div style="display: flex; gap: 15px; align-items: flex-start;">
+                    <div style="background: #005aaa; color: white; padding: 6px 10px; border-radius: 6px; font-weight: bold; font-size: 0.9em;">DN</div>
+                    <i class="fas fa-chart-bar" style="color: #bdbdbd; margin-top: 5px;"></i>
+                    <div style="color: #555; font-size: 0.9em; line-height: 1.5;">
+                        [cite_start]Nº total de pessoas vinculadas à eSF/eAP da <strong>eSB de referência</strong>[cite: 23].
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.appendChild(legendaContainer);
+}
 
 // ==========================================================
 // MÓDULO C5 - HIPERTENSÃO (INSERIDO CIRURGICAMENTE)

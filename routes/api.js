@@ -1880,10 +1880,10 @@ router.get('/indicadores/mulher', async (req, res) => {
 });
 
 // ==========================================================
-// MÓDULO B1 - SAÚDE BUCAL (1ª CONSULTA ODONTOLÓGICA)
+// MÓDULO B1 - SAÚDE BUCAL (MODO TESTE: CBO 2232 GERAL)
 // ==========================================================
 
-// 1. FUNÇÃO BASE DE EXTRAÇÃO (Query Otimizada)
+// 1. FUNÇÃO BASE DE EXTRAÇÃO (Lista Nominal)
 async function extrairDadosB1Base(filtros = {}, paginacao = {}) {
     const { equipe, microarea, competencia } = filtros;
     const { limit, offset } = paginacao;
@@ -1894,28 +1894,22 @@ async function extrairDadosB1Base(filtros = {}, paginacao = {}) {
         `c.st_faleceu = 0`
     ];
 
-    // Filtro de Competência (Data)
-    // Se não houver, pega o ano atual
-    let filtroData = `AND t.nu_ano = EXTRACT(YEAR FROM CURRENT_DATE)`;
+    // Filtro de Data
+    let filtroData = `AND t.dt_registro >= (CURRENT_DATE - INTERVAL '12 months')`; 
     
     if (competencia && competencia.trim() !== '') {
         const mesesArray = competencia.split(',').map(m => m.trim()).filter(m => m);
         if (mesesArray.length > 0) {
-            // Adiciona aos parâmetros globais para evitar injeção
-            // Nota: O índice do params deve ser dinâmico no SQL final, 
-            // mas aqui simplificamos a lógica para a query principal
             filtroData = `AND TO_CHAR(t.dt_registro, 'YYYY-MM') IN ('${mesesArray.join("','")}')`; 
         }
     }
 
-    // Filtro Equipe
+    // Filtros de Equipe/Microárea
     if (equipe && equipe.trim()) {
         params.push(equipe.trim());
         const ph = `$${params.length}`;
         whereClauses.push(`(TRIM(te.nu_ine::text) = ${ph} OR TRIM(te.no_equipe) = ${ph})`);
     }
-
-    // Filtro Microárea
     if (microarea && microarea.trim()) {
         params.push(microarea.trim());
         const ph = `$${params.length}`;
@@ -1924,8 +1918,7 @@ async function extrairDadosB1Base(filtros = {}, paginacao = {}) {
 
     const whereSql = whereClauses.join(' AND ');
 
-    // QUERY PRINCIPAL
-    // Busca cidadãos e verifica se tiveram atendimento com Dentista (CBO 2232%)
+    // QUERY B1 (MODO TESTE: Qualquer Atendimento de Dentista)
     const sqlBase = `
         SELECT 
             c.no_cidadao, 
@@ -1933,14 +1926,13 @@ async function extrairDadosB1Base(filtros = {}, paginacao = {}) {
             c.nu_cns, 
             c.dt_nascimento, 
             te.no_equipe,
-            -- Subquery para buscar a última consulta odontológica no período
             (
                 SELECT MAX(t.dt_registro)
                 FROM tb_fat_atendimento_odonto ao
                 JOIN tb_dim_tempo t ON ao.co_dim_tempo = t.co_seq_dim_tempo
                 LEFT JOIN tb_dim_cbo cbo ON ao.co_dim_cbo_1 = cbo.co_seq_dim_cbo
                 WHERE ao.co_fat_cidadao_pec = pec.co_seq_fat_cidadao_pec
-                AND cbo.nu_cbo LIKE '2232%' -- Filtra Cirurgião Dentista
+                AND cbo.nu_cbo LIKE '2232%' -- Apenas Dentistas
                 ${filtroData}
             ) as dt_ultima_consulta,
             COUNT(*) OVER() as total_geral
@@ -1957,73 +1949,27 @@ async function extrairDadosB1Base(filtros = {}, paginacao = {}) {
     return { dados: res.rows, total: res.rows[0]?.total_geral || 0 };
 }
 
-// 2. ROTA LISTA NOMINAL (B1)
-router.get('/indicadores/b1', async (req, res) => {
-    try {
-        const page = parseInt(req.query.pagina) || 1;
-        const { equipe, microarea, exportar, competencia } = req.query;
-        const limit = exportar === 'true' ? 1000000 : 15;
-        const offset = (page - 1) * limit;
-
-        const { dados, total } = await extrairDadosB1Base({ equipe, microarea, competencia }, { limit, offset });
-
-        // Processamento para formatar a saída
-        const dadosFormatados = dados.map(d => {
-            let dataCons = '-';
-            let status = 'Não';
-            
-            if (d.dt_ultima_consulta) {
-                const dateObj = new Date(d.dt_ultima_consulta);
-                dateObj.setMinutes(dateObj.getMinutes() + dateObj.getTimezoneOffset());
-                dataCons = dateObj.toLocaleDateString('pt-BR');
-                status = 'Sim';
-            }
-            
-            let nasc = '-';
-            if(d.dt_nascimento) {
-                 const dnObj = new Date(d.dt_nascimento);
-                 dnObj.setMinutes(dnObj.getMinutes() + dnObj.getTimezoneOffset());
-                 nasc = dnObj.toLocaleDateString('pt-BR');
-            }
-
-            return {
-                no_cidadao: d.no_cidadao,
-                nu_cpf: d.nu_cpf,
-                nu_cns: d.nu_cns,
-                dt_nascimento: nasc,
-                dt_ultima_consulta: dataCons,
-                status: status
-            };
-        });
-
-        res.json({
-            data: dadosFormatados,
-            pagination: {
-                page: page,
-                limit: limit,
-                totalRows: parseInt(total),
-                totalPages: Math.ceil(parseInt(total) / limit)
-            },
-            columns: [] 
-        });
-
-    } catch (err) {
-        console.error("ERRO LISTA B1:", err);
-        res.status(500).json({ error: "Erro ao buscar dados B1." });
-    }
-});
-
-// 3. ROTA RANKING (B1)
+// 3. ROTA RANKING (B1) - MODO TESTE
 router.get('/indicadores/ranking-b1', async (req, res) => {
-    // Cache curto
-    const cacheKey = 'ranking_b1_v1';
+    const { competencia } = req.query; 
+    
+    // Cache curto para teste
+    const cacheKey = `ranking_b1_test_${competencia || 'ano_atual'}`;
     const cachedData = myCache.get(cacheKey);
     if (cachedData) return res.json(cachedData);
 
     try {
-        // Query de Ranking Agregado
-        // NM: Cidadãos que tiveram consulta com dentista (2232%) no ano
-        // DN: Total de cidadãos vinculados à equipe
+        let filtroDataRank = `AND t.nu_ano = EXTRACT(YEAR FROM CURRENT_DATE)`;
+        let params = [];
+        
+        if (competencia && competencia.trim() !== '') {
+            const mesesArray = competencia.split(',').map(m => m.trim()).filter(m => m);
+            if (mesesArray.length > 0) {
+                filtroDataRank = `AND TO_CHAR(t.dt_registro, 'YYYY-MM') = ANY($1)`;
+                params.push(mesesArray);
+            }
+        }
+
         const sqlRanking = `
             SELECT 
                 te.no_equipe as equipe,
@@ -2033,8 +1979,8 @@ router.get('/indicadores/ranking-b1', async (req, res) => {
                     JOIN tb_dim_tempo t ON ao.co_dim_tempo = t.co_seq_dim_tempo
                     LEFT JOIN tb_dim_cbo cbo ON ao.co_dim_cbo_1 = cbo.co_seq_dim_cbo
                     WHERE ao.co_fat_cidadao_pec = pec.co_seq_fat_cidadao_pec
-                    AND cbo.nu_cbo LIKE '2232%'
-                    AND t.nu_ano = EXTRACT(YEAR FROM CURRENT_DATE)
+                    AND cbo.nu_cbo LIKE '2232%' -- Conta qualquer atendimento de Dentista
+                    ${filtroDataRank}
                 ) THEN pec.co_seq_fat_cidadao_pec END) as nm
             FROM tb_fat_cidadao_pec pec
             JOIN tb_dim_equipe te ON pec.co_dim_equipe_vinc = te.co_seq_dim_equipe
@@ -2045,13 +1991,11 @@ router.get('/indicadores/ranking-b1', async (req, res) => {
             GROUP BY te.no_equipe
         `;
 
-        const result = await pool.query(sqlRanking);
+        const result = await pool.query(sqlRanking, params);
         
-        // Filtra equipes irrelevantes e calcula nota
         const ranking = result.rows
             .filter(r => {
                 const nome = (r.equipe || '').toUpperCase();
-                // Filtra para mostrar apenas equipes relevantes (opcional: ajuste conforme sua base)
                 return !nome.includes('NASF') && !nome.includes('CONSULTORIO');
             })
             .map(r => {
@@ -2069,7 +2013,7 @@ router.get('/indicadores/ranking-b1', async (req, res) => {
 
         ranking.sort((a, b) => parseFloat(b.pontuacao) - parseFloat(a.pontuacao));
         
-        myCache.set(cacheKey, ranking, 600); // Cache 10 min
+        myCache.set(cacheKey, ranking, 30); // Cache bem curto (30s) para ver alterações rápido
         res.json(ranking);
 
     } catch (err) {
