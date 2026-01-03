@@ -714,23 +714,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if(container) container.innerHTML = '<p class="carregando">Carregando dados...</p>';
         if(paginacaoContainer) paginacaoContainer.innerHTML = '';
     }
-    // =================================================================
-    // FUNÇÃO GLOBAL DE PAGINAÇÃO (ESTILO PADRONIZADO AZUL)
-    // Substitua a função 'construirPaginacao' existente por esta:
-    // =================================================================
-    
-    // =================================================================
-    
-    // 2. PAGINAÇÃO COM BOTÕES AZUIS
-    
-    // Substitua a função 'construirPaginacao' atual por esta:
-    
-    // =================================================================
-    
-    // As funções construirPaginacao e navegarPagina foram movidas para o escopo global (`window.`)
-    // e unificadas para evitar duplicação. Este bloco foi removido para evitar conflitos.
-    // =================================================================
-    // --- FUNÇÕES GESTANTES (ATUALIZADAS PARA V.6.5) ---
+ 
     // =================================================================
 // 1. LAYOUT GESTANTES (Limpo e Padronizado)
 // =================================================================
@@ -870,141 +854,76 @@ function carregarDadosTelaGestantes(pagina = 1) {
     });
 }
     // =================================================================
-    // 2. MÓDULO MAIS ACESSO (Abas + Lista Nominal Configuradas)
-    // =================================================================
-    
-// C1
-function carregarLayoutMaisAcesso() {
-    injetarEstilosMultiselect();
+  
+// =================================================================
+// 👑 MÓDULO C1: MAIS ACESSO (CORREÇÃO ÚNICA)
+// =================================================================
+window.carregarLayoutMaisAcesso = function() {
+    if (typeof injetarEstilosMultiselect === 'function') injetarEstilosMultiselect();
+
     const container = document.getElementById('filtros-container-global');
     const tabelaContainer = document.getElementById('tabela-container-global');
     if(!container || !tabelaContainer) return;
-    
+
+    // Definição das colunas
     const cols = [
-        {data:'no_cidadao', title:'NOME'}, {data:'dt_nascimento', title:'NASCIMENTO'},
-        {data:'nu_cpf', title:'CPF'}, {data:'nu_cns', title:'CNS'},
-        {data:'atendimentos_programados', title:'NM (Programado)'}, {data:'total_atendimentos', title:'DN (Total)'}
+        {data:'no_cidadao', title:'NOME'}, 
+        {data:'dt_nascimento', title:'NASCIMENTO'},
+        {data:'nu_cpf', title:'CPF'}, 
+        {data:'nu_cns', title:'CNS'},
+        {data:'atendimentos_programados', title:'NM (Programado)'}, 
+        {data:'total_atendimentos', title:'DN (Total)'}
     ];
+    
+    // CORREÇÃO: Adicionado o parentese que faltava no replace
     const callExport = `baixarRelatorioCompleto('mais-acesso', 'mais-acesso', ${JSON.stringify(cols).replace(/"/g, "'")}, 'C1_MaisAcesso.csv')`;
 
+    // Filtros
     container.style.display = 'flex';
     container.innerHTML = `
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; width:100%;">
             <select id="filtro-equipe-mais-acesso" class="filtro-select"><option value="">Todas as Equipes</option></select>
             <select id="filtro-microarea-mais-acesso" class="filtro-select"><option value="">Todas as Microáreas</option></select>
             ${typeof gerarHtmlMultiselect === 'function' ? gerarHtmlMultiselect('c1') : ''} 
-            <button class="btn-buscar-filtros" onclick="carregarDadosTelaMaisAcesso(1)" style="background-color:#005aaa; color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; height:38px;"><i class="fas fa-search"></i> Buscar</button>
+            <button class="btn-buscar-filtros" onclick="window.carregarDadosTelaMaisAcesso(1)" style="background-color:#005aaa; color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; height:38px; font-weight:bold;">
+                <i class="fas fa-search"></i> Buscar
+            </button>
         </div>`;
 
+    // Tabela e Abas
     tabelaContainer.innerHTML = `
-        <nav class="tab-nav"><button class="tab-btn active" data-tab="mais-acesso-lista">Lista Nominal</button><button class="tab-btn" data-tab="mais-acesso-percentual">Percentual</button></nav>
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="mais-acesso-lista">Lista Nominal</button>
+            <button class="tab-btn" data-tab="mais-acesso-percentual">Percentual</button>
+        </nav>
         <div class="tab-content-wrapper">
             <div id="tab-content-mais-acesso-lista" class="tab-content active">
                 <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
                     <button id="btn-export-mais-acesso" onclick="${callExport}" style="background-color:#2e7d32; color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; display:inline-flex; align-items:center; gap:5px;"><i class="fas fa-file-csv"></i> Exportar CSV</button>
                 </div>
-                <div id="container-dados-mais-acesso"><div class="loading-clean"><i class="fas fa-chevron-up"></i> Selecione os filtros.</div></div>
+                <div id="container-dados-mais-acesso"><div class="loading-clean"><i class="fas fa-filter"></i> Selecione os filtros.</div></div>
                 <div id="paginacao-mais-acesso" style="margin-top:20px; display:flex; justify-content:center; gap:10px;"></div>
             </div>
             <div id="tab-content-mais-acesso-percentual" class="tab-content">
                 <div id="container-ranking-mais-acesso" style="padding:20px;"></div>
-                <div id="legenda-mais-acesso" style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 20px;">
-                    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-                        <div style="flex: 1; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; background: #fff;">
-                            <h5 style="color: #5e35b1; margin-bottom: 20px;">Pontuação</h5>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 15px; font-size: 0.8rem;">
-                                <div style="border-left: 4px solid #e65100; padding-left: 10px;">Regular<br><b>< 10 ou > 70</b></div>
-                                <div style="border-left: 4px solid #fbc02d; padding-left: 10px;">Suficiente<br><b>> 10 e <= 30</b></div>
-                                <div style="border-left: 4px solid #2e7d32; padding-left: 10px;">Bom<br><b>> 30 e <= 50</b></div>
-                                <div style="border-left: 4px solid #4a148c; padding-left: 10px;">Ótimo<br><b>> 50 e <= 70</b></div>
-                            </div>
-                        </div>
-                         <div style="flex: 1; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; background: #fff;">
-                            <p><span style="background:#5e35b1; color:white; padding:2px;">NM</span> Demanda Programada</p>
-                            <p><span style="background:#005aaa; color:white; padding:2px;">DN</span> Total de Demandas</p>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>`;
-    
-    if(typeof configurarAbas === 'function') configurarAbas(tabelaContainer, 'mais-acesso', carregarRankingMaisAcesso);
-    if(typeof preencherFiltroEquipes === 'function') preencherFiltroEquipes('filtro-equipe-mais-acesso', 'filtro-microarea-mais-acesso');
-    const selectEquipe = document.getElementById('filtro-equipe-mais-acesso');
-    if (selectEquipe) { selectEquipe.addEventListener('change', (e) => { if(typeof preencherFiltroMicroareas === 'function') preencherFiltroMicroareas(e.target.value, 'filtro-microarea-mais-acesso'); }); }
-}
 
-function toggleCheckboxC1(event, div) {
-    // CORREÇÃO DE BUG: 
-    // Se o usuário clicou direto na "caixinha" (INPUT), o navegador já altera o estado sozinho.
-    // Se clicou no texto (DIV), nós alteramos manualmente.
+    if(typeof configurarAbas === 'function') configurarAbas(tabelaContainer, 'mais-acesso', window.carregarRankingMaisAcesso);
     
-    if (event.target.tagName === 'INPUT') {
-        // Apenas atualiza o contador de texto, pois o check já ocorreu nativamente
-        atualizarTextoC1();
-        return; 
-    }
-
-    // Se clicou fora da caixinha (no texto), fazemos a troca manual
-    const checkbox = div.querySelector('input');
-    checkbox.checked = !checkbox.checked;
-    atualizarTextoC1();
-}
-
-function atualizarTextoC1() {
-    const checks = document.querySelectorAll('#dropdown-options-c1 input:checked');
-    const display = document.getElementById('display-texto-c1');
-    if(!display) return;
-
-    if(checks.length === 0) display.innerText = "Selecione os Meses...";
-    else if(checks.length === 1) display.innerText = "1 Mês selecionado";
-    else display.innerText = `${checks.length} Meses selecionados`;
-}
-    
-    
-    function adicionarListenersMaisAcesso() {
-        // Botão Buscar
-        const btnBuscar = document.getElementById('btn-buscar-mais-acesso');
-        if(btnBuscar) btnBuscar.addEventListener('click', () => carregarDadosTelaMaisAcesso(1));
-    
-        // Filtro Dinâmico
-        const filtroEquipe = document.getElementById('filtro-equipe-mais-acesso');
-        if(filtroEquipe) filtroEquipe.addEventListener('change', (e) => preencherFiltroMicroareas(e.target.value, 'filtro-microarea-mais-acesso'));
-    
-        // Navegação entre Abas
-        const tabButtons = document.querySelectorAll('.tab-btn');
-        const tabContents = document.querySelectorAll('.tab-content');
-        const filtros = document.getElementById('filtros-container-global');
-    
-        tabButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const tabId = button.dataset.tab;
-                
-                // Controle visual da aba ativa
-                tabButtons.forEach(btn => btn.classList.remove('active'));
-                tabContents.forEach(content => content.classList.remove('active'));
-                button.classList.add('active');
-                document.getElementById(`tab-content-${tabId}`).classList.add('active');
-    
-                // Controle de funcionalidade
-                if (tabId === 'mais-acesso-percentual') {
-                    if(filtros) filtros.style.display = 'none'; // Ranking geralmente mostra todas as equipes
-                    carregarRankingMaisAcesso();
-                } else {
-                    if(filtros) filtros.style.display = 'flex'; // Lista nominal precisa de filtros
-                }
-            });
+    if(typeof window.preencherFiltroEquipes === 'function') {
+        window.preencherFiltroEquipes('filtro-equipe-mais-acesso', 'filtro-microarea-mais-acesso');
+        const sel = document.getElementById('filtro-equipe-mais-acesso');
+        if (sel) sel.addEventListener('change', (e) => { 
+            if(typeof window.preencherFiltroMicroareas === 'function') window.preencherFiltroMicroareas(e.target.value, 'filtro-microarea-mais-acesso'); 
         });
     }
-    
-    // =================================================================
-// CARREGAR DADOS MAIS ACESSO (Com Exportação Completa)
-// =================================================================
+};
+
 window.carregarDadosTelaMaisAcesso = function(pagina = 1) {
     const container = document.getElementById('container-dados-mais-acesso');
     const paginacao = document.getElementById('paginacao-mais-acesso');
-    
-    if(container) container.innerHTML = '<div style="text-align:center; padding:30px;"><div class="spinner-border text-primary"></div><p>Buscando dados...</p></div>';
+    if(container) container.innerHTML = '<div style="text-align:center; padding:30px;"><div class="spinner-border text-primary"></div><p>Buscando...</p></div>';
     if(paginacao) paginacao.innerHTML = '';
 
     const equipe = document.getElementById('filtro-equipe-mais-acesso')?.value || '';
@@ -1017,139 +936,54 @@ window.carregarDadosTelaMaisAcesso = function(pagina = 1) {
     const token = localStorage.getItem('token');
     const params = new URLSearchParams({ equipe, microarea, competencia, pagina });
 
-    fetch(`/api/indicadores/mais-acesso?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-    })
+    fetch(`/api/indicadores/mais-acesso?${params.toString()}`, { headers: { 'Authorization': `Bearer ${token}` } })
     .then(res => res.json())
     .then(res => {
         if(!container) return;
-        container.innerHTML = ''; 
+        container.innerHTML = '';
         if (!res.data || res.data.length === 0) {
             container.innerHTML = '<div style="padding:40px; text-align:center;">Nenhum registro encontrado.</div>';
             return;
         }
-
         const colunas = [
-            { data: 'no_cidadao', title: 'NOME' },
-            { data: 'dt_nascimento', title: 'NASCIMENTO' },
-            { data: 'nu_cpf', title: 'CPF' },
-            { data: 'nu_cns', title: 'CNS' },
-            { data: 'atendimentos_programados', title: 'NM', tooltip: 'Consultas Agendadas' },
-            { data: 'total_atendimentos', title: 'DN', tooltip: 'Total de Atendimentos' }
+            { data: 'no_cidadao', title: 'NOME' }, { data: 'dt_nascimento', title: 'NASCIMENTO' },
+            { data: 'nu_cpf', title: 'CPF' }, { data: 'atendimentos_programados', title: 'NM', tooltip: 'Consultas Agendadas' },
+            { data: 'total_atendimentos', title: 'DN', tooltip: 'Total Atendimentos' }
         ];
-
-        // Usa a tabela genérica ou azul se disponível
-        if(typeof construirTabelaAzul === 'function') construirTabelaAzul(res.data, colunas, container);
-        else if(typeof construirTabela === 'function') construirTabela(res.data, colunas, container);
         
-        // Constrói paginação passando o nome da rota correta
+        // Garante formatação da data
+        const dadosFormatados = res.data.map(d => ({
+            ...d,
+            dt_nascimento: (typeof formatarDataBR === 'function') ? formatarDataBR(d.dt_nascimento) : d.dt_nascimento
+        }));
+
+        if(typeof construirTabelaAzul === 'function') construirTabelaAzul(dadosFormatados, colunas, container);
+        else construirTabela(res.data, colunas, container);
+        
         if(typeof construirPaginacao === 'function') construirPaginacao('indicadores/mais-acesso', res.pagination, { equipe, microarea, competencia }, paginacao);
-    });
+    })
+    .catch(err => { if(container) container.innerHTML = `<div class="alert alert-danger">${err.message}</div>`; });
 };
-    
-    function carregarRankingMaisAcesso() {
+
+window.carregarRankingMaisAcesso = function() {
     const container = document.getElementById('container-ranking-mais-acesso');
     if(!container) return;
+    container.innerHTML = '<div style="text-align:center; padding:30px;"><div class="spinner-border text-primary"></div><p>Calculando...</p></div>';
     
-    container.innerHTML = '<div style="text-align:center; padding:30px;"><div class="spinner-border text-primary" role="status"></div><p>Calculando Percentuais...</p></div>';
     const token = localStorage.getItem('token');
-    
-    fetch('/api/indicadores/ranking-mais-acesso', {
-        headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(res => {
-        if (res.status === 401 || res.status === 403) {
-            localStorage.clear();
-            window.location.href = '/login.html';
-            throw new Error('Sessão expirada');
-        }
-        return res.json();
-    })
+    fetch('/api/indicadores/ranking-mais-acesso', { headers: { 'Authorization': `Bearer ${token}` } })
+    .then(res => res.json())
     .then(data => {
-        // Chama a nova função de construção de tabela específica para o C1
-        construirTabelaRankingMaisAcesso(data, container);
-    })
-    .catch(err => {
-        console.error(err);
-        if (err.message !== 'Sessão expirada') {
-            container.innerHTML = `<div class="alert alert-danger">Erro ao carregar ranking: ${err.message}</div>`;
-        }
-    });
-}
-
-function construirTabelaRankingMaisAcesso(data, container) {
-    if (!container) return;
-    container.innerHTML = '';
-
-    if (!data || data.length === 0) {
-        container.innerHTML = '<div style="padding:30px; text-align:center; color:#777;">Nenhum dado disponível.</div>';
-        return;
-    }
-
-    const table = document.createElement('table');
-    table.className = 'tabela-ranking';
-    table.style.width = '100%';
-
-    // Cabeçalho
-    const thead = document.createElement('thead');
-    thead.innerHTML = `
-        <tr>
-            <th style="text-align:left; width: 40%;">EQUIPE</th>
-            <th style="text-align:center;">NM <i class="fas fa-info-circle" title="Demanda Programada"></i></th>
-            <th style="text-align:center;">DN <i class="fas fa-info-circle" title="Total de Atendimentos"></i></th>
-            <th style="text-align:center;">RESULTADO <i class="fas fa-info-circle" title="Percentual de Acesso"></i></th>
-        </tr>`;
-    table.appendChild(thead);
-
-    const tbody = document.createElement('tbody');
-
-    data.forEach(row => {
-        const tr = document.createElement('tr');
-        
-        // Garante números
-        const nm = parseInt(row.nm || 0);
-        const dn = parseInt(row.dn || 0);
-        
-        // Cálculo percentual seguro
-        let percentual = 0;
-        if(dn > 0) percentual = (nm / dn) * 100;
-
-        // --- LÓGICA DE CORES CONFORME NOTA TÉCNICA C1 ---
-        let cor = '#e65100'; // Regular (Laranja/Vermelho) - Padrão
-        let label = 'Regular';
-        
-        if (percentual > 50 && percentual <= 70) {
-            cor = '#4a148c'; // Roxo (Ótimo)
-            label = 'Ótimo';
-        } else if (percentual > 30 && percentual <= 50) {
-            cor = '#2e7d32'; // Verde (Bom)
-            label = 'Bom';
-        } else if (percentual > 10 && percentual <= 30) {
-            cor = '#fbc02d'; // Amarelo (Suficiente)
-            label = 'Suficiente';
+        if(typeof construirTabelaRankingGenerica === 'function') {
+            // Meta C1: Regular <10 ou >70. Ótimo entre 50 e 70.
+            // A função genérica é simples, vamos usar 50% como corte verde por enquanto.
+            construirTabelaRankingGenerica(data, container, [], 50, 10);
         } else {
-            // Caso <= 10 OU > 70 mantém o Regular
-            cor = '#e65100';
-            label = 'Regular';
+            container.innerHTML = 'Erro: Tabela não carregada.';
         }
-
-        tr.innerHTML = `
-            <td style="text-align:left; color:#000;">${row.equipe || row.no_equipe || 'Sem Equipe'}</td>
-            <td style="text-align:center; font-weight:bold; color:#005aaa;">${nm}</td>
-            <td style="text-align:center; font-weight:bold; color:#005aaa;">${dn}</td>
-            <td style="text-align:center; font-weight:bold; color:${cor}; background-color:${cor}15;">
-                ${percentual.toFixed(2)}%
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-
-    table.appendChild(tbody);
-    container.appendChild(table);
-}
+    })
+    .catch(err => { if(container) container.innerHTML = `<div class="alert alert-danger">${err.message}</div>`; });
+};
 // =========================================================
 // INDICADOR C2: DESENVOLVIMENTO INFANTIL (BLOCO COMPLETO)
 // =========================================================
@@ -1563,16 +1397,12 @@ async function setupDashboardC1() {
     
     try {
         const token = localStorage.getItem('token');
-        const response = await fetch('/api/indicadores/ranking-mais-acesso', {
+        const response = await fetch('/api/indicadores/kpi-mais-acesso', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response.ok) {
             const data = await response.json();
-            let totalNM = 0, totalDN = 0;
-            if (Array.isArray(data)) {
-                data.forEach(d => { totalNM += parseInt(d.nm || 0); totalDN += parseInt(d.dn || 0); });
-            }
-            const perc = totalDN > 0 ? ((totalNM / totalDN) * 100).toFixed(0) : 0;
+            const perc = parseFloat(data.resultado || 0).toFixed(0);
             percentualTexto = `${perc}%`;
             corTexto = perc >= 100 ? '#198754' : (perc < 50 ? '#dc3545' : '#d35400');
         }

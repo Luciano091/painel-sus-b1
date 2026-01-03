@@ -570,8 +570,8 @@ router.get('/indicadores/mais-acesso', async (req, res) => {
             whereClauses.push(`TO_CHAR(t.dt_registro, 'YYYY-MM') = ANY($${params.length})`);
         }
     } else {
-        // Comportamento padrão: filtra pelo ano atual se não houver competência
-        whereClauses.push(`t.nu_ano = EXTRACT(YEAR FROM CURRENT_DATE)`);
+        // Comportamento padrão: filtra pelos últimos 12 meses se não houver competência
+        whereClauses.push(`t.dt_registro >= (CURRENT_DATE - INTERVAL '12 months')`);
     }
 
     if (equipe && equipe.trim() !== '') { params.push(equipe.trim()); whereClauses.push(`te.nu_ine = $${params.length}`); }
@@ -589,7 +589,7 @@ router.get('/indicadores/ranking-mais-acesso', async (req, res) => {
     const cacheKey = 'ranking_mais_acesso_v1';
     const cachedData = myCache.get(cacheKey);
     if (cachedData) return res.json(cachedData);
-    const sql = `SELECT te.no_equipe as equipe, COUNT(*) FILTER (WHERE UPPER(ta.ds_tipo_atendimento) IN ('CONSULTA AGENDADA PROGRAMADA', 'CUIDADO CONTINUADO', 'CONSULTA AGENDADA', 'ESCUTA INICIAL/ORIENTAÇÃO', 'ESCUTA INICIAL / ORIENTAÇÃO', 'CONSULTA NO DIA', 'ATENDIMENTO DE URGÊNCIA', 'ATENDIMENTO DE URGENCIA')) AS dn, COUNT(*) FILTER (WHERE UPPER(ta.ds_tipo_atendimento) IN ('CONSULTA AGENDADA PROGRAMADA', 'CUIDADO CONTINUADO', 'CONSULTA AGENDADA')) AS nm FROM tb_fat_atendimento_individual ai JOIN tb_dim_tempo t ON ai.co_dim_tempo = t.co_seq_dim_tempo LEFT JOIN tb_dim_equipe te ON ai.co_dim_equipe_1 = te.co_seq_dim_equipe LEFT JOIN tb_dim_tipo_atendimento ta ON ai.co_dim_tipo_atendimento = ta.co_seq_dim_tipo_atendimento LEFT JOIN tb_dim_cbo cbo ON ai.co_dim_cbo_1 = cbo.co_seq_dim_cbo WHERE t.nu_ano = EXTRACT(YEAR FROM CURRENT_DATE) AND cbo.nu_cbo IN ('225142', '225170', '225130', '223565', '223505') AND te.no_equipe IS NOT NULL GROUP BY te.no_equipe`;
+        const sql = `SELECT te.no_equipe as equipe, COUNT(*) FILTER (WHERE UPPER(ta.ds_tipo_atendimento) IN ('CONSULTA AGENDADA PROGRAMADA', 'CUIDADO CONTINUADO', 'CONSULTA AGENDADA', 'ESCUTA INICIAL/ORIENTAÇÃO', 'ESCUTA INICIAL / ORIENTAÇÃO', 'CONSULTA NO DIA', 'ATENDIMENTO DE URGÊNCIA', 'ATENDIMENTO DE URGENCIA')) AS dn, COUNT(*) FILTER (WHERE UPPER(ta.ds_tipo_atendimento) IN ('CONSULTA AGENDADA PROGRAMADA', 'CUIDADO CONTINUADO', 'CONSULTA AGENDADA')) AS nm FROM tb_fat_atendimento_individual ai JOIN tb_dim_tempo t ON ai.co_dim_tempo = t.co_seq_dim_tempo LEFT JOIN tb_dim_equipe te ON ai.co_dim_equipe_1 = te.co_seq_dim_equipe LEFT JOIN tb_dim_tipo_atendimento ta ON ai.co_dim_tipo_atendimento = ta.co_seq_dim_tipo_atendimento LEFT JOIN tb_dim_cbo cbo ON ai.co_dim_cbo_1 = cbo.co_seq_dim_cbo WHERE t.dt_registro >= (CURRENT_DATE - INTERVAL '12 months') AND cbo.nu_cbo IN ('225142', '225170', '225130', '223565', '223505') AND te.no_equipe IS NOT NULL GROUP BY te.no_equipe`;
     try {
         const result = await pool.query(sql);
         const rowsFiltered = result.rows.filter(r => { const nome = (r.equipe || '').toUpperCase().trim(); return !['ESB', 'EMAD', 'EMAP', 'ENASF', 'EQUIPE EMULTI', 'NASF', 'CONSULTORIO NA RUA'].some(t => nome.startsWith(t)); });
