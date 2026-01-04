@@ -140,6 +140,32 @@ router.get('/indicadores/microareas', async (req, res) => {
     }
 });
 
+// --- CORREÇÃO DA ROTA DE EQUIPES (REMOVIDO FILTRO DE DESATIVAÇÃO) ---
+router.get('/equipes', async (req, res) => {
+    try {
+        // Busca equipes e seus CNES baseando-se no histórico de produção (tb_fat_atendimento_odonto)
+        const sql = `
+            SELECT DISTINCT 
+                te.nu_ine, 
+                te.no_equipe, 
+                u.nu_cnes
+            FROM tb_dim_equipe te
+            -- Join com atendimento para descobrir o CNES da equipe
+            JOIN tb_fat_atendimento_odonto ao ON te.co_seq_dim_equipe = ao.co_dim_equipe_1
+            JOIN tb_dim_unidade_saude u ON ao.co_dim_unidade_saude_1 = u.co_seq_dim_unidade_saude
+            WHERE te.no_equipe IS NOT NULL 
+            AND te.no_equipe != ''
+            -- Removido filtro de data de desativação para compatibilidade
+            ORDER BY te.no_equipe
+        `;
+        const result = await pool.query(sql);
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Erro /equipes:", err);
+        res.status(500).json({ error: 'Erro ao buscar equipes' });
+    }
+});
+
 // ==========================================================
 // FUNÇÕES CORE: GESTANTES (CORRIGIDAS)
 // ==========================================================
@@ -1880,7 +1906,7 @@ router.get('/indicadores/mulher', async (req, res) => {
 });
 
 // ==========================================================
-// MÓDULO B1 - SAÚDE BUCAL (MODO TESTE: CBO 2232 GERAL)
+// MÓDULO B1 - SAÚDE BUCAL (FINAL)
 // ==========================================================
 
 // 1. FUNÇÃO BASE DE EXTRAÇÃO (Lista Nominal)
@@ -1894,9 +1920,7 @@ async function extrairDadosB1Base(filtros = {}, paginacao = {}) {
         `c.st_faleceu = 0`
     ];
 
-    // Filtro de Data
     let filtroData = `AND t.dt_registro >= (CURRENT_DATE - INTERVAL '12 months')`; 
-    
     if (competencia && competencia.trim() !== '') {
         const mesesArray = competencia.split(',').map(m => m.trim()).filter(m => m);
         if (mesesArray.length > 0) {
@@ -1904,12 +1928,18 @@ async function extrairDadosB1Base(filtros = {}, paginacao = {}) {
         }
     }
 
-    // Filtros de Equipe/Microárea
+    // --- PONTE CNES (LISTA NOMINAL) ---
     if (equipe && equipe.trim()) {
         params.push(equipe.trim());
         const ph = `$${params.length}`;
-        whereClauses.push(`(TRIM(te.nu_ine::text) = ${ph} OR TRIM(te.no_equipe) = ${ph})`);
+        whereClauses.push(`pec.co_dim_unidade_saude_vinc IN (
+            SELECT DISTINCT ao_link.co_dim_unidade_saude_1
+            FROM tb_fat_atendimento_odonto ao_link
+            JOIN tb_dim_equipe eq_link ON ao_link.co_dim_equipe_1 = eq_link.co_seq_dim_equipe
+            WHERE LTRIM(eq_link.nu_ine::text, '0') = LTRIM(${ph}, '0')
+        )`);
     }
+
     if (microarea && microarea.trim()) {
         params.push(microarea.trim());
         const ph = `$${params.length}`;
@@ -1918,21 +1948,21 @@ async function extrairDadosB1Base(filtros = {}, paginacao = {}) {
 
     const whereSql = whereClauses.join(' AND ');
 
-    // QUERY B1 (MODO TESTE: Qualquer Atendimento de Dentista)
+    // QUERY LISTA
     const sqlBase = `
         SELECT 
             c.no_cidadao, 
             c.nu_cpf, 
             c.nu_cns, 
             c.dt_nascimento, 
-            te.no_equipe,
+            te.no_equipe, 
             (
                 SELECT MAX(t.dt_registro)
-                FROM tb_fat_atendimento_odonto ao
-                JOIN tb_dim_tempo t ON ao.co_dim_tempo = t.co_seq_dim_tempo
-                LEFT JOIN tb_dim_cbo cbo ON ao.co_dim_cbo_1 = cbo.co_seq_dim_cbo
-                WHERE ao.co_fat_cidadao_pec = pec.co_seq_fat_cidadao_pec
-                AND cbo.nu_cbo LIKE '2232%' -- Apenas Dentistas
+                FROM tb_fat_atend_odonto_proced fat
+                JOIN tb_dim_tempo t ON fat.co_dim_tempo = t.co_seq_dim_tempo
+                JOIN tb_dim_procedimento proc ON fat.co_dim_procedimento = proc.co_seq_dim_procedimento
+                WHERE fat.co_fat_cidadao_pec = pec.co_seq_fat_cidadao_pec
+                AND proc.co_proced = '0301010153'
                 ${filtroData}
             ) as dt_ultima_consulta,
             COUNT(*) OVER() as total_geral
@@ -1945,21 +1975,72 @@ async function extrairDadosB1Base(filtros = {}, paginacao = {}) {
         ${offset ? `OFFSET ${offset}` : ''}
     `;
 
-    const res = await pool.query(sqlBase, params);
-    return { dados: res.rows, total: res.rows[0]?.total_geral || 0 };
+    try {
+        const res = await pool.query(sqlBase, params);
+        return { dados: res.rows, total: res.rows[0]?.total_geral || 0 };
+    } catch (err) {
+        console.error("Erro SQL B1 (Lista):", err);
+        return { dados: [], total: 0 };
+    }
 }
 
-// 3. ROTA RANKING (B1) - MODO TESTE
+// 2. ROTA LISTA NOMINAL
+router.get('/indicadores/b1', async (req, res) => {
+    try {
+        const page = parseInt(req.query.pagina) || 1;
+        const { equipe, microarea, exportar, competencia } = req.query;
+        const limit = exportar === 'true' ? 1000000 : 15;
+        const offset = (page - 1) * limit;
+
+        const { dados, total } = await extrairDadosB1Base({ equipe, microarea, competencia }, { limit, offset });
+
+        const dadosFormatados = dados.map(d => {
+            let dataCons = '-';
+            let status = 'Não';
+            if (d.dt_ultima_consulta) {
+                const dateObj = new Date(d.dt_ultima_consulta);
+                dateObj.setMinutes(dateObj.getMinutes() + dateObj.getTimezoneOffset());
+                dataCons = dateObj.toLocaleDateString('pt-BR');
+                status = 'Sim';
+            }
+            let nasc = '-';
+            if(d.dt_nascimento) {
+                 const dnObj = new Date(d.dt_nascimento);
+                 dnObj.setMinutes(dnObj.getMinutes() + dnObj.getTimezoneOffset());
+                 nasc = dnObj.toLocaleDateString('pt-BR');
+            }
+            return {
+                no_cidadao: d.no_cidadao,
+                nu_cpf: d.nu_cpf,
+                nu_cns: d.nu_cns,
+                dt_nascimento: nasc,
+                dt_ultima_consulta: dataCons,
+                status: status
+            };
+        });
+
+        res.json({
+            data: dadosFormatados,
+            pagination: { page, limit, totalRows: parseInt(total), totalPages: Math.ceil(parseInt(total) / limit) },
+            columns: [] 
+        });
+    } catch (err) {
+        console.error("ERRO LISTA B1:", err);
+        res.status(500).json({ error: "Erro ao buscar dados B1." });
+    }
+});
+
+// 3. ROTA RANKING (B1) - VERSÃO FINAL (FILTRO VISUAL APENAS ESB)
 router.get('/indicadores/ranking-b1', async (req, res) => {
     const { competencia } = req.query; 
     
-    // Cache curto para teste
-    const cacheKey = `ranking_b1_test_${competencia || 'ano_atual'}`;
+    // Cache Key atualizada (v13) para forçar a limpeza da lista antiga
+    const cacheKey = `ranking_b1_visual_final_v13_${competencia || 'last12m'}`;
     const cachedData = myCache.get(cacheKey);
     if (cachedData) return res.json(cachedData);
 
     try {
-        let filtroDataRank = `AND t.nu_ano = EXTRACT(YEAR FROM CURRENT_DATE)`;
+        let filtroDataRank = `AND t.dt_registro >= (CURRENT_DATE - INTERVAL '12 months')`;
         let params = [];
         
         if (competencia && competencia.trim() !== '') {
@@ -1971,49 +2052,63 @@ router.get('/indicadores/ranking-b1', async (req, res) => {
         }
 
         const sqlRanking = `
+            WITH metricas_por_cnes AS (
+                -- 1. Calcula números por Unidade (CNES)
+                SELECT 
+                    u.nu_cnes,
+                    COUNT(DISTINCT pec.co_seq_fat_cidadao_pec) as dn,
+                    COUNT(DISTINCT CASE WHEN EXISTS (
+                        SELECT 1 FROM tb_fat_atend_odonto_proced fat
+                        JOIN tb_dim_tempo t ON fat.co_dim_tempo = t.co_seq_dim_tempo
+                        JOIN tb_dim_procedimento proc ON fat.co_dim_procedimento = proc.co_seq_dim_procedimento
+                        WHERE fat.co_fat_cidadao_pec = pec.co_seq_fat_cidadao_pec
+                        AND proc.co_proced = '0301010153'
+                        ${filtroDataRank}
+                    ) THEN pec.co_seq_fat_cidadao_pec END) as nm
+                FROM tb_fat_cidadao_pec pec
+                JOIN tb_dim_unidade_saude u ON pec.co_dim_unidade_saude_vinc = u.co_seq_dim_unidade_saude
+                JOIN tb_cidadao c ON pec.co_cidadao = c.co_seq_cidadao
+                WHERE c.st_ativo = 1 
+                AND c.st_faleceu = 0
+                GROUP BY u.nu_cnes
+            ),
+            equipes_com_cnes AS (
+                -- 2. Vincula Equipes às Unidades pela produção
+                SELECT DISTINCT 
+                    te.no_equipe, 
+                    u.nu_cnes
+                FROM tb_dim_equipe te
+                JOIN tb_fat_atendimento_odonto ao ON te.co_seq_dim_equipe = ao.co_dim_equipe_1
+                JOIN tb_dim_unidade_saude u ON ao.co_dim_unidade_saude_1 = u.co_seq_dim_unidade_saude
+                WHERE te.no_equipe IS NOT NULL AND te.no_equipe != ''
+            )
+            -- 3. Entrega Lista Filtrada (Apenas ESB)
             SELECT 
-                te.no_equipe as equipe,
-                COUNT(DISTINCT pec.co_seq_fat_cidadao_pec) as dn,
-                COUNT(DISTINCT CASE WHEN EXISTS (
-                    SELECT 1 FROM tb_fat_atendimento_odonto ao
-                    JOIN tb_dim_tempo t ON ao.co_dim_tempo = t.co_seq_dim_tempo
-                    LEFT JOIN tb_dim_cbo cbo ON ao.co_dim_cbo_1 = cbo.co_seq_dim_cbo
-                    WHERE ao.co_fat_cidadao_pec = pec.co_seq_fat_cidadao_pec
-                    AND cbo.nu_cbo LIKE '2232%' -- Conta qualquer atendimento de Dentista
-                    ${filtroDataRank}
-                ) THEN pec.co_seq_fat_cidadao_pec END) as nm
-            FROM tb_fat_cidadao_pec pec
-            JOIN tb_dim_equipe te ON pec.co_dim_equipe_vinc = te.co_seq_dim_equipe
-            JOIN tb_cidadao c ON pec.co_cidadao = c.co_seq_cidadao
-            WHERE c.st_ativo = 1 
-            AND te.no_equipe IS NOT NULL 
-            AND te.no_equipe != ''
-            GROUP BY te.no_equipe
+                e.no_equipe as equipe,
+                COALESCE(m.nm, 0) as nm,
+                COALESCE(m.dn, 0) as dn
+            FROM equipes_com_cnes e
+            JOIN metricas_por_cnes m ON e.nu_cnes = m.nu_cnes
+            WHERE e.no_equipe ILIKE '%ESB%' -- <--- O FILTRO MÁGICO AQUI
+            ORDER BY (COALESCE(m.nm, 0)::float / NULLIF(m.dn, 0)) DESC
         `;
 
         const result = await pool.query(sqlRanking, params);
         
-        const ranking = result.rows
-            .filter(r => {
-                const nome = (r.equipe || '').toUpperCase();
-                return !nome.includes('NASF') && !nome.includes('CONSULTORIO');
-            })
-            .map(r => {
-                const nm = parseInt(r.nm || 0);
-                const dn = parseInt(r.dn || 0);
-                const pontuacao = dn > 0 ? (nm / dn) * 100 : 0;
-                
-                return {
-                    equipe: r.equipe,
-                    nm: nm,
-                    dn: dn,
-                    pontuacao: pontuacao.toFixed(2)
-                };
-            });
+        const ranking = result.rows.map(r => {
+            const nm = parseInt(r.nm);
+            const dn = parseInt(r.dn);
+            const pontuacao = dn > 0 ? (nm / dn) * 100 : 0;
+            
+            return {
+                equipe: r.equipe,
+                nm: nm,
+                dn: dn,
+                pontuacao: pontuacao.toFixed(2)
+            };
+        });
 
-        ranking.sort((a, b) => parseFloat(b.pontuacao) - parseFloat(a.pontuacao));
-        
-        myCache.set(cacheKey, ranking, 30); // Cache bem curto (30s) para ver alterações rápido
+        myCache.set(cacheKey, ranking, 60); 
         res.json(ranking);
 
     } catch (err) {
@@ -2021,5 +2116,4 @@ router.get('/indicadores/ranking-b1', async (req, res) => {
         res.status(500).json({ error: "Erro ao calcular ranking B1." });
     }
 });
-
 module.exports = router;

@@ -2016,56 +2016,24 @@ window.carregarRankingB1 = function() {
     container.innerHTML = `
         <div style="text-align:center; padding:40px;">
             <div class="spinner-border text-primary"></div>
-            <p>Consolidando dados das equipes eSB...</p>
+            <p>Carregando dados...</p>
         </div>`;
 
     const token = localStorage.getItem('token');
+    const checks = document.querySelectorAll('.check-mes-b1:checked');
+    const competencia = Array.from(checks).map(c => c.value).join(',');
 
-    // 1. CAPTURA AS COMPETÊNCIAS SELECIONADAS NA TELA
-    const checks = document.querySelectorAll('#dropdown-options-b1 input:checked'); // Note: ID pode ser b1 ou o genérico usado no layout
-    // Fallback: Se não achar com ID b1, tenta pegar do layout genérico se estiver usando o mesmo ID
-    const competencia = Array.from(document.querySelectorAll('.check-mes-b1:checked')).map(c => c.value).join(',');
-
-    // 2. Dispara requisições (Passando a competência para o ranking!)
-    Promise.all([
-        fetch('/api/equipes', { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json()),
-        // Adiciona a competência na URL
-        fetch(`/api/indicadores/ranking-b1?limit=1000&competencia=${competencia}`, { headers: { 'Authorization': `Bearer ${token}` } }).then(r => r.json())
-    ])
-    .then(([todasEquipes, dadosRanking]) => {
-        
-        // Filtra APENAS as eSBs
-        const listaESB = todasEquipes.filter(eq => 
-            eq.no_equipe && eq.no_equipe.toUpperCase().includes('ESB')
-        );
-
-        console.log(`📊 B1 (Periodo: ${competencia || 'Ano Atual'}): ${listaESB.length} eSBs.`);
-
-        const tabelaFinal = listaESB.map(equipeRef => {
-            const dadosEncontrados = dadosRanking.find(r => {
-                const nomeRank = (r.equipe || r.no_equipe || '').trim().toUpperCase();
-                const nomeRef = equipeRef.no_equipe.trim().toUpperCase();
-                return nomeRank === nomeRef;
-            });
-
-            if (dadosEncontrados) {
-                return {
-                    equipe: equipeRef.no_equipe,
-                    nm: dadosEncontrados.nm || 0,
-                    dn: dadosEncontrados.dn || 0,
-                    pontuacao: dadosEncontrados.pontuacao || 0
-                };
-            } else {
-                return { equipe: equipeRef.no_equipe, nm: 0, dn: 0, pontuacao: 0 };
-            }
-        });
-
-        // Ordena
-        tabelaFinal.sort((a, b) => b.pontuacao - a.pontuacao);
-
-        // 3. RENDERIZA COM CORES ESPECÍFICAS (Meta 5%)
-        // Ótimo > 5% | Bom > 3% | Suficiente > 1% | Regular <= 1%
-        construirTabelaRankingB1(tabelaFinal, container);
+    // A rota agora já traz a tabela pronta com nomes e números
+    fetch(`/api/indicadores/ranking-b1?limit=1000&competencia=${competencia}`, { 
+        headers: { 'Authorization': `Bearer ${token}` } 
+    })
+    .then(response => response.json())
+    .then(dados => {
+        if (!Array.isArray(dados)) {
+            throw new Error("Dados inválidos recebidos da API");
+        }
+        // Apenas desenha, sem cruzamentos complexos
+        construirTabelaRankingB1(dados, container);
     })
     .catch(err => {
         console.error("Erro B1:", err);
@@ -2177,7 +2145,7 @@ function construirTabelaRankingB1(data, container) {
                     <div style="background: #4a148c; color: white; padding: 6px 10px; border-radius: 6px; font-weight: bold; font-size: 0.9em;">NM</div>
                     <i class="fas fa-chart-bar" style="color: #bdbdbd; margin-top: 5px;"></i>
                     <div style="color: #555; font-size: 0.9em; line-height: 1.5;">
-                        [cite_start]Nº total de pessoas com <strong>primeira consulta odontológica programática</strong> realizadas pela eSB[cite: 23].
+                        Nº total de pessoas com <strong>primeira consulta odontológica programática</strong> realizadas pela eSB
                     </div>
                 </div>
                 
@@ -2187,7 +2155,7 @@ function construirTabelaRankingB1(data, container) {
                     <div style="background: #005aaa; color: white; padding: 6px 10px; border-radius: 6px; font-weight: bold; font-size: 0.9em;">DN</div>
                     <i class="fas fa-chart-bar" style="color: #bdbdbd; margin-top: 5px;"></i>
                     <div style="color: #555; font-size: 0.9em; line-height: 1.5;">
-                        [cite_start]Nº total de pessoas vinculadas à eSF/eAP da <strong>eSB de referência</strong>[cite: 23].
+                        Nº total de pessoas vinculadas à eSF/eAP da <strong>eSB de referência</strong>
                     </div>
                 </div>
             </div>
